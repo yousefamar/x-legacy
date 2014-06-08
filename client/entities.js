@@ -5,6 +5,7 @@ GAME.namespace('entities').EntityManager = function (scene) {
 	this.players = {};
 
 	this.tickQueue = new GAME.utils.Queue();
+	this.animQueue = new GAME.utils.Queue();
 };
 
 GAME.entities.EntityManager.prototype.spawnPlayer = function(username, state) {
@@ -25,4 +26,9 @@ GAME.entities.EntityManager.prototype.despawnPlayer = function(username) {
 GAME.entities.EntityManager.prototype.tick = function(delta) {
 	for (var i = 0, size = this.tickQueue.size; i < size; i++)
 		this.tickQueue.poll().tick(delta);
+};
+
+GAME.entities.EntityManager.prototype.animate = function(delta) {
+	for (var i = 0, size = this.animQueue.size; i < size; i++)
+		this.animQueue.poll().animate(delta);
 };

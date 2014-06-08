@@ -1,5 +1,5 @@
 GAME.namespace('models').load = function(callback) {
-	var paths = ['tools.axe', 'tree.tree', 'tree.timber', 'tree.stump', 'portalradio.portalradio'];
+	var paths = ['tools.axe', 'tree.tree', 'tree.timber', 'tree.stump', 'portalradio.portalradio', 'player.torso', 'player.head'];
 
 	var loaded = 0;
 

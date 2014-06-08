@@ -23,19 +23,14 @@ GAME.player.Player.prototype = Object.create(THREE.Object3D.prototype);
 GAME.player.Player.prototype.addModel = function() {
 	var player = this;
 
-	var loader = new THREE.JSONLoader();
-	loader.load('models/player/torso.js', function (geometry, materials) {
-			var torsoMesh = new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
-			torsoMesh.lookAt(new THREE.Vector3(0,0,-1));
-			player.add(torsoMesh);
-		}
-	);
-	loader.load('models/player/head.js', function (geometry, materials) {
-			var headMesh = new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
-			headMesh.lookAt(new THREE.Vector3(0,0,-1));
-			player.head.add(headMesh);
-		}
-	);
+	var torsoMesh = new Physijs.Mesh(GAME.models.player.torso.geom, new THREE.MeshFaceMaterial(GAME.models.player.torso.mats));
+	torsoMesh.lookAt(new THREE.Vector3(0,0,-1));
+	player.add(torsoMesh);
+
+	var headMesh = new Physijs.Mesh(GAME.models.player.head.geom, new THREE.MeshFaceMaterial(GAME.models.player.head.mats));
+	headMesh.lookAt(new THREE.Vector3(0,0,-1));
+	player.head.add(headMesh);
+
 	return this;
 };
 
@@ -168,6 +163,7 @@ GAME.player.PlayerController = function (scene, player) {
 				break;
 			case 66:
 				// TODO: Restructure.
+				if (!scope.enabled) return;
 				var ball = new Physijs.SphereMesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshPhongMaterial({ color: 0x0000FF }));
 				var headWorldPos = player.head.localToWorld(new THREE.Vector3(0, 0, -1));
 				ball.position.copy(headWorldPos);

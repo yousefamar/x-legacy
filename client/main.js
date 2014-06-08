@@ -5,7 +5,8 @@
 	var game = GAME.game;
 
 	game.tickList = [];
-	
+	game.animList = [];
+
 	function init() {
 		Physijs.scripts.worker = './physics/physijs_worker.js';
 		Physijs.scripts.ammo = './ammo.js';
@@ -36,23 +37,29 @@
 		});
 	}
 
-	var clock = new THREE.Clock();
+	var tickClock = new THREE.Clock();
 
 	function tick() {
 		// FIXME: Chrome throttles the interval down to 1s on inactive tabs.
 		setTimeout(tick, TICK_INTERVAL_MS);
 
 		GAME.gui.statsTick.begin();
-		var delta = clock.getDelta();
+		var delta = tickClock.getDelta();
 		for (var i = 0, size = game.tickList.length; i < size; i++)
 			game.tickList[i].tick(delta, game);
 		GAME.gui.statsTick.end();
 	}
 
+	var animClock = new THREE.Clock();
+
 	function render() {
 		requestAnimationFrame(render);
 
 		GAME.gui.statsRender.begin();
+		var delta = animClock.getDelta();
+		TWEEN.update();
+		for (var i = 0, size = game.animList.length; i < size; i++)
+			game.animList[i].animate(delta, game);
 		game.renderer.render(game.scene, game.camera);
 		GAME.gui.statsRender.end();
 	}

@@ -19,6 +19,10 @@ GAME.world.Scene.prototype.tick = function (delta) {
 	this.simulate();
 };
 
+GAME.world.Scene.prototype.animate = function (delta) {
+	this.entityManager.animate(delta);
+};
+
 
 // TODO: Structure.
 GAME.world.buildSceneIsland = function (game) {
@@ -56,10 +60,10 @@ GAME.world.buildSceneIsland = function (game) {
 	// TODO: Implement correctly.
 	game.player.axeMesh = axeMesh;
 	game.player.heldItem = axeMesh;
-	axeMesh.tick = function (event) {
+	axeMesh.animate = function (delta) {
 		if (this.rotation.y > -0.25*Math.PI) {
-			this.rotation.y -= 0.1;
-			game.scene.entityManager.tickQueue.add(this);
+			this.rotation.y -= 6.0*delta;
+			game.scene.entityManager.animQueue.add(this);
 		} else {
 			this.isRetracting = false;
 		}
@@ -68,7 +72,7 @@ GAME.world.buildSceneIsland = function (game) {
 		this.rotation.y = 0;
 		if (!this.isRetracting) {
 			this.isRetracting = true;
-			game.scene.entityManager.tickQueue.add(this);
+			game.scene.entityManager.animQueue.add(this);
 		}
 	};
 	//axeMesh.onMouseup = function (event) {};
@@ -93,12 +97,10 @@ GAME.world.buildSceneIsland = function (game) {
 	var skyPivot = new THREE.Object3D();
 	// TODO: Calculate sun's actual diameter (IRL, angular diameter = 0.5°).
 	var sun = new THREE.Mesh(new THREE.PlaneGeometry(2500, 2500), new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture('./images/sun.png'), transparent: true, fog: false, color: 0xFFCC33 }));
-	GAME.sun = sun;
 	sun.position.x = 7800;
 	sun.lookAt(new THREE.Vector3());
 	skyPivot.add(sun);
 	var moon = new THREE.Mesh(new THREE.PlaneGeometry(2500, 2500), new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture('./images/moon.png'), transparent: true, fog: false }));
-	GAME.moon = moon;
 	moon.position.x = -7800;
 	moon.lookAt(new THREE.Vector3());
 	skyPivot.add(moon);
@@ -153,6 +155,7 @@ GAME.world.buildSceneIsland = function (game) {
 	sunDirLight.target = game.player;
 	sky.add(sunDirLight);
 
+	// TODO: Move to animate if using actual time.
 	sky.tick = function (delta) {
 		game.time = (game.time+0.0001)%1.0;
 		var time = game.time;
@@ -298,6 +301,7 @@ GAME.world.buildSceneIsland = function (game) {
 
 
 	game.scene.fog = new THREE.FogExp2(0xFFFFFF, 0.0025);
+	// TODO: Same as sky.
 	game.scene.fog.tick = function (delta) {
 		var height = Math.sin(game.time*2.0*Math.PI);
 		this.color.setHSL(0.0, 0.0, 0.5*(height<0.0?-Math.pow(-height,0.5):Math.pow(height,0.5))+0.5);
@@ -360,16 +364,113 @@ GAME.world.buildSceneIsland = function (game) {
 			if (other_object instanceof Physijs.SphereMesh)
 				source.getAudioFlag('paused')?source.play():source.pause();
 		});
-		radioMesh.tick = function (delta) {
+		radioMesh.animate = function (delta) {
 			source.setPosition(radioCollider.position);
 			var freqByteData = new Uint8Array(source.analyser.frequencyBinCount);
 			source.analyser.getByteTimeDomainData(freqByteData);
 			var scaleFactor = (Math.max.apply(Math, freqByteData)/150)+1;
 			this.scale.set(scaleFactor, scaleFactor, scaleFactor);
-			game.scene.entityManager.tickQueue.add(this);
+			game.scene.entityManager.animQueue.add(this);
 		};
-		game.scene.entityManager.tickQueue.add(radioMesh);
+		game.scene.entityManager.animQueue.add(radioMesh);
 	}, true);
 
+
+	var wingRot = { y: 0.25*Math.PI };
+
+	var tweenUp = new TWEEN.Tween(wingRot)
+			.to({ y: -0.25*Math.PI }, 200)
+			//.easing(TWEEN.Easing.Elastic.InOut)
+			//.onUpdate(updateWingRotation);
+
+	var tweenDown = new TWEEN.Tween(wingRot)
+			.to({ y: 0.25*Math.PI }, 100)
+			//.easing(TWEEN.Easing.Elastic.InOut)
+			//.onUpdate(updateWingRotation)
+			.chain(tweenUp);
+
+	tweenUp.chain(tweenDown).start();
+
+	function setButterflyWingAngle (angle) {
+		this.children[0].rotation.y = -angle;
+		this.children[1].rotation.y = angle;
+	}
+
+	function animateButterfly (delta) {
+		this.setWingAngle(wingRot.y);
+		this.rotation.x += 0.1*(Math.random()-0.5);
+		this.rotation.y += 0.1*(Math.random()-0.5);
+		this.rotation.z += 0.1*(Math.random()-0.5);	
+		this.position.copy(this.localToWorld(new THREE.Vector3(0, 0, -0.01)));
+		game.scene.entityManager.animQueue.add(this);
+	}
+
+	var butterflyTextures = [];
+
+	function createButterfly (type, wingspan) {
+		var map = butterflyTextures[type] || (butterflyTextures[type] = THREE.ImageUtils.loadTexture('./images/butterflies/'+type+'.png'));
+		//console.log(map.image.width);
+		var wingLPivot = new THREE.Object3D(), wingRPivot = new THREE.Object3D();
+		var butterfly = new THREE.Object3D();
+
+		// TODO: Avoid hardcoding width to height ratio (Maybe load all images beforehand and check their dimensions).
+		var wingL = new THREE.Mesh(new THREE.PlaneGeometry(0.5*wingspan, (2.0/3.0)*wingspan), new THREE.MeshPhongMaterial({ map: map, side: THREE.DoubleSide, transparent: true, alphaTest: 0.1 }));
+		wingL.position.x = -0.25*wingspan;
+		wingL.scale.x = -1;
+		wingLPivot.add(wingL);
+		wingLPivot.rotation.x = -0.5*Math.PI;
+
+		var wingR = new THREE.Mesh(new THREE.PlaneGeometry(0.5*wingspan, (2.0/3.0)*wingspan), new THREE.MeshPhongMaterial({ map: map, side: THREE.DoubleSide, transparent: true, alphaTest: 0.1 }));
+		wingR.position.x = 0.25*wingspan;
+		wingRPivot.add(wingR);
+		wingRPivot.rotation.x = -0.5*Math.PI;
+
+		butterfly.add(wingLPivot);
+		butterfly.add(wingRPivot);
+
+		butterfly.setWingAngle = setButterflyWingAngle;
+		return butterfly;
+	}
+
+	var onPickButterfly = function (intersection) {
+		console.log(intersection);
+	}
+
+	function spawnButterfly () {
+		var monarch = createButterfly('monarch', 0.1);
+		monarch.position.copy(game.player.position);
+		monarch.position.y += 0.75;
+		// FIXME: Look direction inverted?
+		monarch.lookAt(game.player.head.localToWorld(new THREE.Vector3(0,0,1)));
+		monarch.updateMatrixWorld();
+
+		monarch.heading = new THREE.Vector3(0, 0, -1);
+
+		monarch.animate = animateButterfly;
+		monarch.onPick = onPickButterfly;
+		game.scene.entityManager.animQueue.add(monarch);
+		game.scene.add(monarch);
+	}
+
+	function butterflyBomb () {
+		for (var i = 0; i < 50; i++)
+			spawnButterfly();
+	}
+
+	document.addEventListener('keydown', function (event) {
+		if (event.keyCode == 86 && game.player.controller.enabled)
+			butterflyBomb();
+	});
+
+
+	var triggerCollider = new Physijs.BoxMesh(new THREE.CubeGeometry(4, 4, 4), new THREE.MeshBasicMaterial({ color: 0x00EE00, wireframe: true, transparent: true }), 0);
+	triggerCollider._physijs.collision_flags = 4;
+	triggerCollider.position.copy(game.player.position).z -= 10;
+	triggerCollider.addEventListener('collision', function(other_object, relative_velocity, relative_rotation) {
+		console.log(other_object);
+	});
+	game.scene.add(triggerCollider);
+
 	game.tickList.push(game.scene);
+	game.animList.push(game.scene);
 };
