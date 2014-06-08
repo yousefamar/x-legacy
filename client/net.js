@@ -87,6 +87,7 @@ GAME.namespace('net').p2p = {
 			peers.push(connection);
 
 			connection.on('open', function () {
+				// TODO: Consider moving to client.
 				broadcast('log', { msg: connection.peer+' has joined the game.' });
 			});
 
@@ -106,6 +107,8 @@ GAME.namespace('net').p2p = {
 				var peerIndex = peers.indexOf(connection);
 				if (peerIndex < 0) return;
 				peers.splice(peerIndex, 1);
+				broadcast('despawn', connection.peer);
+				// TODO: Consider moving to client.
 				broadcast('log', { msg: connection.peer+' has left the game.' });
 			});
 		});

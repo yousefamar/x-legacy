@@ -61,7 +61,7 @@ div#game {
 	margin: 0;
 	padding: 0;
 	height: 100%;
-	background-color: #1C6BA0;
+	background-color: black;
 }
 div#mainMenu {
 	color: white;
@@ -75,9 +75,6 @@ div#instructions {
 	color: white;
 	text-shadow: -1px 0 #008888, 0 1px #008888, 1px 0 #008888, 0 -1px #008888;
 	pointer-events: none;
-}
-div#canvas {
-	opacity: 0.5;
 }
 div#blocker {
 	background-color: rgba(0,0,0,0.5);

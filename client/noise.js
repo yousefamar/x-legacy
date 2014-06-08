@@ -59,7 +59,7 @@ GAME.utils.noise = {
 				context.biLerp(context.smooth3D(seed, xi, yi, zi+1), context.smooth3D(seed, xi+1, yi, zi+1), context.smooth3D(seed, xi, yi+1, zi+1), context.smooth3D(seed, xi+1, yi+1, zi+1), muX, muY), muZ);
 	},
 
-	triLerp: function (cs, muX, muY, muZ){
+	triLerp: function (cs, muX, muY, muZ) {
 		var context = GAME.utils.noise;
 		return context.lerp(context.biLerp(cs[0][0][0], cs[1][0][0], cs[0][1][0], cs[1][1][0], muX, muY),
 				context.biLerp(cs[0][0][1], cs[1][0][1], cs[0][1][1], cs[1][1][1], muX, muY), muZ);
@@ -70,7 +70,7 @@ GAME.utils.noise = {
 		return context.lerp(context.lerp(c00, c10, muX), context.lerp(c01, c11, muX), muY);
 	},
 
-	lerp: function (x0, x1, mu){
+	lerp: function (x0, x1, mu) {
 		return x0+(x1-x0)*mu;
 	},
 
@@ -81,7 +81,7 @@ GAME.utils.noise = {
 		return corners + sides + context.noise(seed,x,y,0)/4;
 	},
 
-	smooth3D: function (seed, x, y, z){
+	smooth3D: function (seed, x, y, z) {
 		var context = GAME.utils.noise;
 		var edges = (context.noise(seed,x-1,y-1,z)+context.noise(seed,x+1,y-1,z)+context.noise(seed,x-1,y+1,z)+context.noise(seed,x+1,y+1,z)
 				+context.noise(seed,x,y-1,z-1)+context.noise(seed,x-1,y,z-1)+context.noise(seed,x+1,y,z-1)+context.noise(seed,x,y+1,z-1)
@@ -92,13 +92,16 @@ GAME.utils.noise = {
 		return edges + corners + sides + context.noise(seed,x,y,z)/4;
 	},
 
+	
 	/**
 	 * Generate a linearly congruent random number in the range [-1.0, 1.0) implicitly.
-	 * Primes and generators taken from libnoise as the original large ones made patterns.
 	 */
-	noise: function (seed, x, y, z){
-		var n = (1619*x + 31337*y + 6971*z + 1013*seed)&0x7FFFFFFF;
-		n = (n>>13)^n;
-		return (((n*(n*n*60493+19990303)+1376312589)&0x7FFFFFFF)/1073741824.0) - 1;
+	// TODO: Design an thoroughly test a fast noise algorithm and investigate how fast % is vs &.
+	noise: function (seed, x, y, z) {
+		// FIXME: This would obviously create patterns very quickly.
+		var n = x + y * 89 + z * 4173 + seed * 110133;
+		n = (n >> 13) ^ n;
+		return 1.0 - (((n * (n * n * 60493 + 19990303) + 1376312589) % 0x7FFFFFFF) / 1073741824.0);
+		//return ((seed*717815713 ^ x* 862079717 ^ y*809893709 ^ z*743349007)&0x3FFFFFFF)/536870911 - 1;
 	}
 };

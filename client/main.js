@@ -14,10 +14,12 @@
 			console.log('Physics Engine initialised.');
 		});
 
+		game.loaderJSON = new THREE.JSONLoader();
+
 		//game.scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
 
 		game.player = new GAME.player.Player(game.scene);
-		game.player.position.y = 40;
+		game.player.position.y = 45;
 		game.player.position.z = 20;
 		game.player.controller = new GAME.player.PlayerController(game.scene, game.player);
 		game.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -30,8 +32,33 @@
 		};
 		game.scene.entityManager.tickQueue.add(game.player);
 
+		// TODO: Should player and children cast shadows?
 		game.scene.add(game.player);
 
+		game.loaderJSON.load('models/tools/axe.js', function (geometry, materials) {
+			var axeMesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
+			axeMesh.scale.set(0.5,0.5,0.5);
+			axeMesh.position.set(0.5,-game.player.head.position.y,-0.25);
+			axeMesh.rotation.set(0,-0.25*Math.PI,0.1*Math.PI);
+			game.player.head.add(axeMesh);
+			game.player.heldItem = axeMesh;
+			axeMesh.tick = function (event) {
+				if (this.rotation.y > -0.25*Math.PI) {
+					this.rotation.y -= 0.1;
+					game.scene.entityManager.tickQueue.add(this);
+				} else {
+					this.isRetracting = false;
+				}
+			};
+			axeMesh.onMousedown = function (event) {
+				this.rotation.y = 0;
+				if (!this.isRetracting) {
+					this.isRetracting = true;
+					game.scene.entityManager.tickQueue.add(this);
+				}
+			};
+			//axeMesh.onMouseup = function (event) {};
+		});
 
 
 		var sky = new THREE.Object3D();
@@ -40,16 +67,57 @@
 		//starCoords = [new THREE.Vector2(10, 10), new THREE.Vector2(20, 20)];
 		//starSizes = [1.0, 1.0];
 
-		var time = 0.0;
+		game.time = 0.0;
 
 		var skyMat = new THREE.ShaderMaterial(GAME.shaders.sky);
 		skyMat.side = THREE.BackSide;
-		var skyMesh = new THREE.Mesh(new THREE.SphereGeometry(1000, 8, 4, 0, 2 * Math.PI, 0, Math.PI * 0.5), skyMat);
+		skyMat.transparent = true;
+		var skyMesh = new THREE.Mesh(new THREE.SphereGeometry(9000, 16, 16), skyMat);
 		//skyMesh.rotation.y = -0.5 * Math.PI;
 		sky.add(skyMesh);
 		//sky.add(new THREE.Mesh(new THREE.SphereGeometry(1000, 8, 4, 0, 2 * Math.PI, 0, Math.PI * 0.5), new THREE.MeshBasicMaterial({ color: 0x00EE00/*0x220044*/, wireframe: true, transparent: true })));
-		
-		var sunHemiLight = new THREE.HemisphereLight(0xFFFFFF, 0xFFFFFF, 0.05);
+
+		var skyPivot = new THREE.Object3D();
+		// TODO: Calculate sun's actual diameter (IRL, angular diameter = 0.5°).
+		var sun = new THREE.Mesh(new THREE.PlaneGeometry(2500, 2500), new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture('./images/sun.png'), transparent: true, fog: false, color: 0xFFCC33 }));
+		GAME.sun = sun;
+		sun.position.x = 7800;
+		sun.lookAt(new THREE.Vector3());
+		skyPivot.add(sun);
+		var moon = new THREE.Mesh(new THREE.PlaneGeometry(2500, 2500), new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture('./images/moon.png'), transparent: true, fog: false }));
+		GAME.moon = moon;
+		moon.position.x = -7800;
+		moon.lookAt(new THREE.Vector3());
+		skyPivot.add(moon);
+		sky.add(skyPivot);
+
+		// TODO: Make stars move independently of sun and moon.
+		//var starPivot = new THREE.Object3D();
+		var starDist = 9500;
+		function addStar(ra, dec, scale) {
+			var star = new THREE.Mesh(new THREE.PlaneGeometry(scale*20, scale*20), new THREE.MeshBasicMaterial({ color: 0xFFFFFF, fog: false }));
+			star.position.x = Math.cos(dec) * Math.sin(ra) * starDist;
+			star.position.y = Math.sin(dec) * starDist;
+			star.position.z = -Math.cos(dec) * Math.cos(ra) * starDist;
+			star.lookAt(new THREE.Vector3());
+			skyPivot.add(star);
+			//starPivot.add(star);
+		}
+		console.log('Generating stars...');
+		var counter = 0;
+		for (var dec = -90; dec <= 90; dec++) {
+			for (var ra = 0; ra < 360; ra++) {
+				var n = GAME.utils.noise.noise(1, ra, dec+90, 1);
+				if (n < -0.99-((dec*dec)/810000)) {
+					counter++;
+					addStar((ra/180.0) * Math.PI, (dec/180.0) * Math.PI, 2.0+n);
+				}
+			}
+		}
+		console.log('Done: '+counter+' stars generated.');
+		//sky.add(starPivot);
+
+		var sunHemiLight = new THREE.HemisphereLight(0xFFFFFF, 0xFFFFFF, 0.3);
 		//hemiLight.color.setHSL(0.6, 1, 0.6);
 		//hemiLight.groundColor.setHSL(0.095, 1, 0.75);
 		sunHemiLight.position.set(0.0, 1000.0, 0.0);
@@ -73,14 +141,18 @@
 		sky.add(sunDirLight);
 
 		sky.tick = function (delta) {
-			time = 0.25;//(time+0.001)%1.0;
+			game.time = (game.time+0.0001)%1.0;
+			var time = game.time;
 			GAME.shaders.sky.uniforms.time.value = time;
-			var height = Math.sin(time*2.0*Math.PI);
-			game.player._sun.position.set(20.0*Math.cos(time*2.0*Math.PI), 20.0*height, 0.0);
-			sunDirLight.intensity = 0.5*height;
-			sunDirLight.shadowDarkness = 0.5*sunDirLight.intensity;
+			var rot = time*2.0*Math.PI;
+			skyPivot.rotation.z = rot;
+			var height = Math.sin(rot);
+			sun.material.color.setHSL(0.13, 1.0, 0.8+(height<0.0?0.0:0.2*Math.pow(height,0.5)));
+			game.player._sun.position.set(20.0*Math.cos(rot), 20.0*height, 0.0);
+			sunDirLight.intensity = 0.25*height+0.25;
+			sunDirLight.shadowDarkness = Math.max(0.0, 0.5*height);
 			//sunHemiLight.intensity = 0.5*height;
-			sunHemiLight.groundColor.setHSL(0.7, 1.0, 0.25+(0.375*(height+1.0)));
+			sunHemiLight.groundColor.setHSL(0.7, 1.0, 0.5+(0.25*(height+1.0)));
 			game.scene.entityManager.tickQueue.add(this);
 		};
 		game.scene.entityManager.tickQueue.add(sky);
@@ -88,7 +160,7 @@
 
 
 		var spotLight = new THREE.SpotLight(0xFFFFFF, 1, 1000);
-		spotLight.position.set(10, 64, 10);
+		spotLight.position.set(10, 69, 10);
 		spotLight.castShadow = true;
 		//spotLight.shadowCameraVisible = true;
 		spotLight.shadowCameraNear = 5;
@@ -100,7 +172,7 @@
 		spotLight.shadowMapWidth = 1024;
 		spotLight.shadowMapHeight = 1024;
 		spotLight.tick = function (delta) {
-			this.intensity = 1.0-(0.5*(Math.sin(time*2.0*Math.PI)+1.0));
+			this.intensity = 1.0-(0.5*(Math.sin(game.time*2.0*Math.PI)+1.0));
 			this.shadowDarkness = 0.5*this.intensity;
 			game.scene.entityManager.tickQueue.add(this);
 		};
@@ -108,18 +180,18 @@
 		game.scene.add(spotLight);
 
 
-		var water = new THREE.Mesh(new THREE.PlaneGeometry(2048, 2048), new THREE.MeshBasicMaterial({ color: 0x1C6BA0/*, opacity: 0.5*/ }));
+		var water = new THREE.Mesh(new THREE.PlaneGeometry(20480, 20480), new THREE.MeshPhongMaterial({ color: 0x1C6BA0/*, opacity: 0.5*/ }));
 		water.lookAt(new THREE.Vector3(0,1,0));
 		water.position.y = 1.0;
 		game.scene.add(water);
 
 
 		var terrainGeom = new THREE.PlaneGeometry(1024, 1024, 256, 256);
-		var seed = 0;
+		var seed = 1;
 		console.log('Generating terrain...');
 		for (var i = 0; i < terrainGeom.vertices.length; i++) {
 			var vertex = terrainGeom.vertices[i];
-			var x = vertex.x>>2, z = vertex.y>>2;
+			var x = vertex.x/4, z = -vertex.y/4;
 			var fade = (Math.abs(x*x)+Math.abs(z*z))/16384.0;
 			fade = fade>1.0?0.0:1.0-fade;
 			vertex.z = ((GAME.utils.noise.perlin2D(seed, x+128, z+128)+1.0)/2.0) * fade * 64.0;
@@ -137,11 +209,99 @@
 		game.scene.add(terrain);
 
 
-		game.scene.add(new THREE.FogExp2(0xEFD1B5, 0.0025));
+		game.loaderJSON.load('models/tree/tree.js', function (geometry, materials) {
+			console.log('Generating forest...');
+
+			var timberGeom, stumpGeom;
+
+			// TODO: Find a way to load both models asynchronously and wait or something.
+			game.loaderJSON.load('models/tree/timber.js', function (geometry) {
+				timberGeom = geometry;
+			});
+			game.loaderJSON.load('models/tree/stump.js', function (geometry) {
+				stumpGeom = geometry;
+			});
+
+			var treeChopSound, treeFellSound;
+			GAME.audio.load(['audio/chop.ogg'], function(source){treeChopSound = source;});
+			GAME.audio.load(['audio/treefell.ogg'], function(source){treeFellSound = source;});
+
+			var onPickTree = function (intersection) {
+				if (treeChopSound) {
+					treeChopSound.setPosition(this.collider.position);
+					treeChopSound.play(false);
+				}
+				if (++this.chopCount < 4)
+					return;
+
+				game.scene.remove(this.collider);
+				var stumpCollider = new Physijs.CylinderMesh(new THREE.CylinderGeometry(0.9, 0.9, 0.72), new THREE.MeshBasicMaterial(/*{ color: 0x00EE00, wireframe: true }*/), 0);
+				stumpCollider.visible = false;
+				stumpCollider.position.copy(this.collider.position);
+				stumpCollider.position.y -= 1.64;
+				stumpCollider.rotation.copy(this.collider.rotation);
+				var stumpMesh = new THREE.Mesh(stumpGeom, new THREE.MeshFaceMaterial(materials));
+				stumpMesh.position.y -= 0.36;
+				stumpMesh.castShadow = true;
+				stumpMesh.receiveShadow = true;
+				stumpCollider.add(stumpMesh);
+				game.scene.add(stumpCollider);
+				var timberCollider = new Physijs.CapsuleMesh(new THREE.CylinderGeometry(0.75, 0.75, 3.28), new THREE.MeshBasicMaterial(/*{ color: 0x00EE00, wireframe: true }*/));
+				timberCollider.visible = false;
+				timberCollider.position.copy(this.collider.position);
+				timberCollider.position.y += 0.36;
+				timberCollider.rotation.copy(this.collider.rotation);
+				var timberMesh = new THREE.Mesh(timberGeom, new THREE.MeshFaceMaterial(materials));
+				timberMesh.position.y -= 2.36;
+				timberMesh.castShadow = true;
+				timberMesh.receiveShadow = true;
+				timberCollider.add(timberMesh);
+				game.scene.add(timberCollider);
+				// TODO: Consider making the timber tip to the left instead of forwards.
+				timberCollider.applyCentralImpulse(new THREE.Vector3().subVectors(intersection.point, game.player.position).normalize());
+				if (treeFellSound) {
+					treeFellSound.setPosition(timberCollider.position);
+					treeFellSound.play(false);
+				}
+			};
+
+			var rand;
+			for (var i = 0, vertCount = terrainGeom.vertices.length; i < vertCount; i++) {
+				rand = GAME.utils.noise.noise(seed, 0, 0, i);
+				if (rand > 0.9) {
+					var vertex = terrainGeom.vertices[i];
+					if (vertex.z < 16.32) continue;
+					var treeCollider = new Physijs.CylinderMesh(new THREE.CylinderGeometry(0.75, 0.75, 4.0), new THREE.MeshBasicMaterial(/*{ color: 0x00EE00, wireframe: true }*/), 0);
+					treeCollider.visible = false;
+					// NOTE: How the hell do terrain vertices map to world vertices like this?
+					treeCollider.position.set(-vertex.y, vertex.z+2.0, -vertex.x);
+					treeCollider.rotation.set(0, (rand-0.9)*20.0*Math.PI, 0);
+					var treeMesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
+					treeMesh.position.y -= 2.0;
+					treeMesh.castShadow = true;
+					treeMesh.receiveShadow = true;
+					treeMesh.collider = treeCollider;
+					treeMesh.chopCount = 0;
+					treeMesh.onPick = onPickTree;
+					treeCollider.add(treeMesh);
+					game.scene.add(treeCollider);
+				}
+			}
+			console.log('Done.');
+		});
+
+
+		game.scene.fog = new THREE.FogExp2(0xFFFFFF, 0.0025);
+		game.scene.fog.tick = function (delta) {
+			var height = Math.sin(game.time*2.0*Math.PI);
+			this.color.setHSL(0.0, 0.0, 0.5*(height<0.0?-Math.pow(-height,0.5):Math.pow(height,0.5))+0.5);
+			game.scene.entityManager.tickQueue.add(this);
+		};
+		game.scene.entityManager.tickQueue.add(game.scene.fog);
 
 
 		var monolith = new Physijs.BoxMesh(new THREE.CubeGeometry(2, 10, 2), new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
-		monolith.position.y = 40;
+		monolith.position.y = 45;
 		monolith.castShadow = true;
 		monolith.receiveShadow = true;
 		var collisionCounter = 0;
@@ -172,11 +332,10 @@
 		spotLight.target = monolith;
 		game.scene.add(monolith);
 
-		var loader = new THREE.JSONLoader();
-		loader.load('models/portalradio/portalradio.js', function (geometry, materials) {
+		game.loaderJSON.load('models/portalradio/portalradio.js', function (geometry, materials) {
 				var radioCollider = new Physijs.BoxMesh(new THREE.CubeGeometry(0.5, 0.5, 0.25), new THREE.MeshBasicMaterial({ color: 0x00EE00, wireframe: true, transparent: true }));
 				radioCollider.position.x = -10;
-				radioCollider.position.y = 37;
+				radioCollider.position.y = 42;
 				//radioCollider.setCcdMotionThreshold(0.5);
 				//radioCollider.setCcdSweptSphereRadius(0.1);
 				radioCollider.visible = false;
@@ -222,6 +381,7 @@
 		game.renderer.setSize(window.innerWidth, window.innerHeight);
 		game.renderer.shadowMapEnabled = true;
 		game.renderer.shadowMapSoft = true;
+		game.renderer.sortObjects = false;
 
 		GAME.gui.init();
 
@@ -239,6 +399,7 @@
 	var clock = new THREE.Clock();
 
 	function tick() {
+		// FIXME: Chrome throttles the interval down to 1s on inactive tabs.
 		setTimeout(tick, TICK_INTERVAL_MS);
 
 		GAME.gui.statsTick.begin();

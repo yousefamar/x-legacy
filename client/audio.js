@@ -35,6 +35,7 @@ GAME.audio.tick = function (delta, game) {
 	GAME.audio.context.listener.setOrientation(camLookVec.x, camLookVec.y, camLookVec.z, 0, 1, 0);
 };
 
+// TODO: Structure, GainNode.
 GAME.audio.AudioSourceBuffered = function (buffer) {
 	THREE.Object3D.call(this);
 

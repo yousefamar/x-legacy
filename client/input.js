@@ -82,15 +82,6 @@ GAME.namespace('input').init = function(scene, player) {
 				if (event.keyCode == 13) {
 					document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock;
 					document.exitPointerLock();
-				} else if (event.keyCode == 66) {
-					// TODO: Move to Player class in own event listener.
-					ball = new Physijs.SphereMesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshPhongMaterial({ color: 0x0000FF }));
-					var headWorldPos = player.head.localToWorld(new THREE.Vector3(0, 0, -1));
-					ball.position.copy(headWorldPos);
-					ball.castShadow = true;
-					ball.receiveShadow = true;
-					scene.add(ball);
-					ball.setLinearVelocity(player.head.localToWorld(new THREE.Vector3(0, 0, -2)).sub(headWorldPos).normalize().multiplyScalar(20));
 				}
 			} else {
 				if (event.keyCode == 27)
@@ -111,7 +102,6 @@ GAME.namespace('input').init = function(scene, player) {
 				escDown = false;
 			}
 		}, false);
-
 	} else {
 
 		//instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';

@@ -90,14 +90,14 @@ GAME.player.PlayerController = function (scene, player) {
 	player.collider.position = player.position;
 	var landingSound;
 	GAME.audio.load(['audio/landing.ogg'], function(source){landingSound = source;});
-	player.collider.addEventListener('collision',
-			function(other_object, relative_velocity, relative_rotation) {
-				//console.log(relative_velocity);				
-				if (landingSound && other_object instanceof Physijs.PlaneMesh) {
-					landingSound.setPosition(new THREE.Vector3().addVectors(player.position, new THREE.Vector3(0, -1.65, 0)));
-					landingSound.play(false);
-				}
-			});
+	/*
+	player.collider.addEventListener('collision', function(other_object, relative_velocity, relative_rotation) {
+		if (landingSound && other_object instanceof Physijs.HeightfieldMesh) {
+			landingSound.setPosition(new THREE.Vector3().addVectors(player.position, new THREE.Vector3(0, -1.65, 0)));
+			landingSound.play(false);
+		}
+	});
+	*/
 	scene.add(player.collider);
 
 	//player.collider.setDamping(0.99, 1.0);
@@ -122,77 +122,101 @@ GAME.player.PlayerController = function (scene, player) {
 
 	var PI_2 = Math.PI / 2;
 
-	document.addEventListener('mousemove',
-			function (event) {
-				if (scope.enabled === false) return;
+	document.addEventListener('mousemove', function (event) {
+		if (scope.enabled === false) return;
 
-				var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-				var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+		var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+		var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
 
-				player.rotation.y -= movementX * 0.002;
-				player.head.rotation.x -= movementY * 0.002;
+		player.rotation.y -= movementX * 0.002;
+		player.head.rotation.x -= movementY * 0.002;
 
-				player.head.rotation.x = Math.max(-PI_2, Math.min(PI_2, player.head.rotation.x));
-			}, false);
+		player.head.rotation.x = Math.max(-PI_2, Math.min(PI_2, player.head.rotation.x));
+	}, false);
 
-	document.addEventListener('keydown',
-			function (event) {
-				switch (event.keyCode) {
-					case 38: // up
-					case 87: // w
-						moveForward = true;
-						break;
-					case 37: // left
-					case 65: // a
-						moveLeft = true; break;
-					case 40: // down
-					case 83: // s
-						moveBackward = true;
-						break;
-					case 39: // right
-					case 68: // d
-						moveRight = true;
-						break;
-					case 32: // space
-						// TODO: Make player height an attribute of Player.
-						if (scope.enabled && distToGround() < 1.33) velocity.y = 100;
-						break;
-				}
-			}, false);
+	document.addEventListener('keydown', function (event) {
+		switch (event.keyCode) {
+			case 38: // up
+			case 87: // w
+				moveForward = true;
+				break;
+			case 37: // left
+			case 65: // a
+				moveLeft = true; break;
+			case 40: // down
+			case 83: // s
+				moveBackward = true;
+				break;
+			case 39: // right
+			case 68: // d
+				moveRight = true;
+				break;
+			case 32: // space
+				// TODO: Make player height an attribute of Player.
+				// TODO: Find another way to check if the player is touching the ground.
+				if (scope.enabled && distToGround() < 1.33) velocity.y = 4;
+				break;
+			case 66:
+				// TODO: Restructure.
+				var ball = new Physijs.SphereMesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshPhongMaterial({ color: 0x0000FF }));
+				var headWorldPos = player.head.localToWorld(new THREE.Vector3(0, 0, -1));
+				ball.position.copy(headWorldPos);
+				ball.castShadow = true;
+				ball.receiveShadow = true;
+				scene.add(ball);
+				ball.setLinearVelocity(player.head.localToWorld(new THREE.Vector3(0, 0, -2)).sub(headWorldPos).normalize().multiplyScalar(20));
+			break;
+		}
+	}, false);
 
-	document.addEventListener('keyup',
-			function (event) {
-				switch(event.keyCode) {
-					case 38: // up
-					case 87: // w
-						moveForward = false;
-						break;
-					case 37: // left
-					case 65: // a
-						moveLeft = false;
-						break;
-					case 40: // down
-					case 83: // a
-						moveBackward = false;
-						break;
-					case 39: // right
-					case 68: // d
-						moveRight = false;
-						break;
-				}
-			}, false);
+	document.addEventListener('keyup', function (event) {
+		switch(event.keyCode) {
+			case 38: // up
+			case 87: // w
+				moveForward = false;
+				break;
+			case 37: // left
+			case 65: // a
+				moveLeft = false;
+				break;
+			case 40: // down
+			case 83: // a
+				moveBackward = false;
+				break;
+			case 39: // right
+			case 68: // d
+				moveRight = false;
+				break;
+		}
+	}, false);
+
+	var rayCasterPick = new THREE.Raycaster();
+	rayCasterPick.ray.origin = player.position;
+	document.addEventListener('mousedown', function (event) {
+		if (scope.enabled && 'heldItem' in player && 'onMousedown' in player.heldItem)
+			player.heldItem.onMousedown(event);
+
+		rayCasterPick.ray.direction.copy(player.head.localToWorld(new THREE.Vector3(0, 0, -1)).sub(player.head.localToWorld(new THREE.Vector3())).normalize());
+		// TODO: Consider testing only a subset of objects for intersetion.
+		var intersections = rayCasterPick.intersectObject(scene, true);
+		if (intersections.length > 0 && intersections[0].distance <= 1.5 && 'onPick' in intersections[0].object)
+			intersections[0].object.onPick(intersections[0]);
+	}, false);
+
+	document.addEventListener('mouseup', function (event) {
+		if (scope.enabled && 'heldItem' in player && 'onMouseup' in player.heldItem)
+			player.heldItem.onMouseup(event);
+	}, false);
 
 	this.enabled = false;
 
-	var rayCaster = new THREE.Raycaster();
-	rayCaster.ray.direction.set( 0, -1, 0 );
+	var rayCasterGround = new THREE.Raycaster();
+	rayCasterGround.ray.origin = player.position;
+	rayCasterGround.ray.direction.set(0, -1, 0);
 
 	// TODO: Consider adding this function to the Player prototype.
 	function distToGround() {
-		rayCaster.ray.origin.copy(player.position);
-		//rayCaster.ray.origin.y -= 10;
-
-		var intersections = rayCaster.intersectObject(scene, true);
+		var intersections = rayCasterGround.intersectObject(scene, true);
 		return intersections.length>0 ? intersections[0].distance : -1;
 	}
 

@@ -60,16 +60,23 @@ GAME.gui.submitConsoleInput = function (form) {
 		var cmd = input[0].substring(1);
 		var args = input.slice(1);
 
+		// TODO: Build event-handler system.
+		// TODO: Error detection, case-sesitivity, non-existent host, success notification, etc.
 		switch(cmd) {
 		case 'join':
 			if (args.length > 0)
-				// TODO: Error detection, case-sesitivity, non-existent host, etc.
 				GAME.net.p2p.join(args[0]);
 			else
 				GAME.gui.log('Join syntax: "/join [HostID]".');
 			break;
 		case 'host':
 			GAME.net.p2p.host();
+			break;
+		case 'time':
+			if (args.length > 0)
+				GAME.game.time = parseFloat(args[0])%1.0;
+			else
+				GAME.gui.log('Time syntax: "/time [0.0-1.0)".');
 			break;
 		default:
 			GAME.gui.log('Invalid command.');
