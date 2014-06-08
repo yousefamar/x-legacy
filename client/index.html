@@ -1,8 +1,8 @@
 <head>
 	<link rel="stylesheet" type="text/css" href="./style.css"></link>
+	<!-- TODO: Consider loading asynchronously. -->
 	<script src="./three.min.js"></script>
 	<script src="./stats.min.js"></script>
-	<script src="./socket.io.min.js"></script>
 	<script src="./physics/physi.js"></script>
 	<script src="./utils.js"></script>
 	<script src="./net.js"></script>
@@ -10,16 +10,26 @@
 	<script src="./shaders.js"></script>
 	<script src="./input.js"></script>
 	<script src="./audio.js"></script>
-	<script src="./audio/mespeak/mespeak.js"></script>
 	<script src="./world.js"></script>
 	<script src="./entities.js"></script>
 	<script src="./player.js"></script>
 	<script src="./main.js"></script>
+	<script>
+	function loadScriptsBG() {
+		GAME.utils.loadScriptAsync('./audio/mespeak/mespeak.js', function(){
+			GAME.audio.initMeSpeak();
+		});
+
+		GAME.utils.loadScriptAsync('./socket.io.min.js', function () {
+			//GAME.net.connectToServer(game, 'http://4ytech.com:9980');
+		});
+	}
+	</script>
 </head>
 
-<body onload="GAME.core.Main.main();">
+<body onload="loadScriptsBG();">
 	<div id="game">
-		<div id="blocker"></div>
+		<div id="blocker" class="fullscreen"></div>
 		<div id="overlay">
 			<div id="passiveChat" class="fadeIn"></div>
 			<form id="clientForm" name="clientForm">
@@ -31,9 +41,6 @@
 						onfocus="GAME.gui.setChatFocus(true, this);"
 						onblur="GAME.gui.setChatFocus(false, this);"
 						onkeydown="if (event.keyCode == 13) { GAME.net.submitFormInput(this.form); return false;}"></textarea>
-				<!--
-				<input type="button" name="button" value="Send" onClick="submitFormInput(this.form)">
-				-->
 			</form>
 		</div>
 		<div id="instructions">
@@ -54,5 +61,49 @@
 			</p>
 		</div>
 		<script>GAME.utils.centerElement(document.getElementById('instructions'));</script>
+		<!--
+		<div id="loadingScreen" class="fullscreen">
+			<div id="loadingText" style="position: absolute; top: 50%; left: 50%; color: white; background-color: black;">
+				<center>
+					<h1>Loading...</h1>
+				</center>
+			</div>
+		</div>
+		<script>GAME.utils.centerElement(document.getElementById('loadingScreen'));</script>
+		-->
+		<div id="mainMenu" class="fullscreen">
+			<script>
+				function startGame(mode) {
+					if (mode == 1) {
+						var mainMenu = document.getElementById('mainMenu');
+						mainMenu.parentNode.removeChild(mainMenu);
+					}
+					switch(mode) {
+					case 1:
+						setTimeout(GAME.core.Main.main(), 1);
+						break;
+					case 2:
+						GAME.net.ConnectionP2P.send('hiii');
+						break;
+					case 3:
+						GAME.net.ConnectionP2P.createPeerConnection();
+						break;
+					default:
+						alert('Feature not yet implemented.');
+					}
+				}
+			</script>
+			<div id="buttons" style="position: absolute; top: 50%; left: 50%;">
+				<center>
+					<h1>The Game.</h1><br><br>
+					<button type="button" onclick="startGame(1);">Single Player</button><br>
+					<button type="button" onclick="startGame(2);">Join</button><br>
+					<button type="button" onclick="startGame(3);">Host</button><br>
+					<button type="button" onclick="startGame(0);">MMO Thing</button><br>
+					<button type="button" onclick="startGame(0);">Bla</button><br>
+				</center>
+			</div>
+			<script>GAME.utils.centerElement(document.getElementById('buttons'));</script>
+		</div>
 	</div>
 </body>

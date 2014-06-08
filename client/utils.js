@@ -24,12 +24,12 @@ GAME.namespace('utils').getRoot = function() {
 	return 'https://dl.dropbox.com/u/704818/Escape%20Pod/Games/';
 };
 
-GAME.utils.include = function(filename) {
-	//TODO: Fix asynchronicity.
+GAME.utils.loadScriptAsync = function(url, callback) {
 	var script = document.createElement('script');
-	script.async = false;
-	script.src = filename;
-	document.getElementById('includes').appendChild(script);
+	//script.async = false;
+	script.src = url;
+	script.onload = callback;
+	document.head.appendChild(script);
 	//appendChild(document.createTextNode("<script type=\"text/javascript\" src=\""+filename+"\"></script>"));
 };
 

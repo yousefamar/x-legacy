@@ -68,3 +68,107 @@ GAME.net.submitFormInput = function (form) {
 		source.play();
 	});
 };
+
+
+GAME.net.ConnectionP2P = {
+	createPeerConnection: function () {
+		this.servers = { "iceServers": [{ "url": "stun:stun.l.google.com:19302" }] };
+		this.pc1 = new webkitRTCPeerConnection(this.servers, {optional: [{RtpDataChannels: true}]});
+
+		console.log('Connected to peer.');
+
+		try {
+			this.sendChannel = this.pc1.createDataChannel('sendDataChannel', {reliable: false});
+			console.log('Created send data channel');
+		} catch (e) {
+			console.log('Create Data channel failed with exception: ' + e.message);
+		}
+		this.pc1.onicecandidate = this.iceCallback1;
+		this.sendChannel.onopen = this.onSendChannelStateChange;
+		this.sendChannel.onclose = this.onSendChannelStateChange;
+
+		this.pc2 = new webkitRTCPeerConnection(this.servers, {optional: [{RtpDataChannels: true}]});
+		console.log('Created remote peer connection object pc2');
+
+		this.pc2.onicecandidate = this.iceCallback2;
+		this.pc2.ondatachannel = this.receiveChannelCallback;
+
+		this.pc1.createOffer(this.gotDescription1);
+	},
+
+	send: function (data) {
+		if (this.sendChannel)
+			this.sendChannel.send(data);
+		console.log(data);
+	},
+
+	closeDataChannels: function () {
+		console.log('Closing data Channels');
+		this.sendChannel.close();
+		console.log('Closed data channel with label: ' + this.sendChannel.label);
+		this.receiveChannel.close();
+		console.log('Closed data channel with label: ' + this.receiveChannel.label);
+		this.pc1.close();
+		this.pc2.close();
+		this.pc1 = null;
+		this.pc2 = null;
+		console.log('Closed peer connections');
+	},
+
+	gotDescription1: function (desc) {
+		var context = GAME.net.ConnectionP2P;
+		context.pc1.setLocalDescription(desc);
+		console.log('Offer from pc1 \n' + desc.sdp);
+		context.pc2.setRemoteDescription(desc);
+		context.pc2.createAnswer(context.gotDescription2);
+	},
+
+	gotDescription2: function (desc) {
+		var context = GAME.net.ConnectionP2P;
+		context.pc2.setLocalDescription(desc);
+		console.log('Answer from pc2 \n' + desc.sdp);
+		context.pc1.setRemoteDescription(desc);
+	},
+
+	iceCallback1: function (event) {
+		console.log('local ice callback');
+		if (event.candidate) {
+			GAME.net.ConnectionP2P.pc2.addIceCandidate(event.candidate);
+			console.log('Local ICE candidate: \n' + event.candidate.candidate);
+		}
+	},
+
+	iceCallback2: function (event) {
+		console.log('local ice callback');
+		if (event.candidate) {
+			GAME.net.ConnectionP2P.pc1.addIceCandidate(event.candidate);
+			console.log('Local ICE candidate: \n' + event.candidate.candidate);
+		}
+	},
+
+	receiveChannelCallback: function (event) {
+		var context = GAME.net.ConnectionP2P;
+		console.log('Receive Channel Callback');
+		context.receiveChannel = event.channel;
+		context.receiveChannel.onmessage = context.onReceiveMessageCallback;
+		context.receiveChannel.onopen = context.onReceiveChannelStateChange;
+		context.receiveChannel.onclose = context.onReceiveChannelStateChange;
+	},
+
+	onReceiveMessageCallback: function (event) {
+		console.log('Received Message');
+		console.log(event.data);
+	},
+
+	onSendChannelStateChange: function () {
+		var readyState = GAME.net.ConnectionP2P.sendChannel.readyState;
+		console.log('Send channel state is: ' + readyState);
+		if (readyState == 'open') {
+		} else {
+		}
+	},
+
+	onReceiveChannelStateChange: function () {
+		console.log('Receive channel state is: ' + GAME.net.ConnectionP2P.receiveChannel.readyState);
+	}
+};

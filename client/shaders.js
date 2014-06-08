@@ -16,6 +16,26 @@ GAME.namespace('shaders').sky = {
 
 };
 
+/*
+GAME.shaders.water = {
+	uniforms : {
+		skyRadius: { type: 'f', value: 1000.0 },
+		time: { type: 'f', value: 0.0 },
+		//lookVec: { type: 'v3', value: new THREE.Vector3(0, 0, -1) }
+		//starCoords: { type: 'v2v', value: starCoords },
+		//starSizes: { type: 'fv1', value: starSizes }
+		//starMap: { type: 't', value: THREE.ImageUtils.loadTexture( './images/starmap.png' ) }
+	},
+
+	// TODO: Hardcode shader source code in.
+
+	vertexShader: GAME.utils.xhrSyncGet('./shaders/water.vert'),
+
+	fragmentShader: GAME.utils.xhrSyncGet('./shaders/water.frag')
+
+};
+*/
+
 GAME.shaders.terrain = {
 	uniforms: {
 		'diffuse' : { type: 'c', value: new THREE.Color( 0xeeeeee ) },

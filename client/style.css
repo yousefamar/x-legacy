@@ -1,11 +1,20 @@
+/* TODO: Consider building some of these on the fly. */
 body {
 	margin: 0;
 	padding: 0;
-	background-color: black;
+	height: 100%;
+}
+button {
+	width: 200px;
+	height: 50px;
+	margin-top: 40px;
+	color: white;
+	background-color: #646464;
 }
 textarea {
 	resize: none;
 	/*overflow: hidden;*/
+	font: 8pt Tahoma;
 	background-color: rgba(1,1,1,0.5);
 	color: white;
 }
@@ -20,6 +29,13 @@ div.fadeIn, div.fadeOut {
 	-moz-transition: opacity 1s;
 	-webkit-transition: opacity 1s;
 	-o-transition: opacity 1s;
+}
+div.fullscreen {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
 }
 textarea#input {
 	overflow: hidden;
@@ -42,6 +58,14 @@ textarea#console.maxSize {
 }
 div#game {
 	position: relative;
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	background-color: #1C6BA0;
+}
+div#mainMenu {
+	color: white;
+	background-color: black;
 }
 div#instructions {
 	position: absolute;
@@ -56,12 +80,6 @@ div#canvas {
 	opacity: 0.5;
 }
 div#blocker {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	color: white;
 	background-color: rgba(0,0,0,0.5);
 }
 div#overlay {
@@ -81,7 +99,7 @@ div#passiveChat {
 	left: 0;
 	vertical-align: bottom;
 	color: white;
-	font-size: 8pt;
+	font: 8pt Tahoma;
 	text-shadow: -1px 0 #000000, 0 1px #000000, 1px 0 #000000, 0 -1px #000000;
 	pointer-events: none;
 }

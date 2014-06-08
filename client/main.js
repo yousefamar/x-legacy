@@ -10,10 +10,14 @@
 	function buildScene() {
 		game.scene = new GAME.world.Scene();
 
+		game.scene.addEventListener('ready', function(){
+			console.log('Physics Engine initialised.');
+		});
+
 		//game.scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
 
 		game.player = new GAME.player.Player(game.scene);
-		game.player.position.y = 60;
+		game.player.position.y = 40;
 		game.player.position.z = 20;
 		game.player.controller = new GAME.player.PlayerController(game.scene, game.player);
 		game.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -69,7 +73,7 @@
 		sky.add(sunDirLight);
 
 		sky.tick = function (delta) {
-			time = (time+0.001)%1.0;
+			time = 0.25;//(time+0.001)%1.0;
 			GAME.shaders.sky.uniforms.time.value = time;
 			var height = Math.sin(time*2.0*Math.PI);
 			game.player._sun.position.set(20.0*Math.cos(time*2.0*Math.PI), 20.0*height, 0.0);
@@ -81,8 +85,6 @@
 		};
 		game.scene.entityManager.tickQueue.add(sky);
 		game.scene.add(sky);
-
-		//game.scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0025);
 
 
 		var spotLight = new THREE.SpotLight(0xFFFFFF, 1, 1000);
@@ -105,7 +107,13 @@
 		game.scene.entityManager.tickQueue.add(spotLight);
 		game.scene.add(spotLight);
 
-		
+
+		var water = new THREE.Mesh(new THREE.PlaneGeometry(2048, 2048), new THREE.MeshBasicMaterial({ color: 0x1C6BA0/*, opacity: 0.5*/ }));
+		water.lookAt(new THREE.Vector3(0,1,0));
+		water.position.y = 1.0;
+		game.scene.add(water);
+
+
 		var terrainGeom = new THREE.PlaneGeometry(1024, 1024, 256, 256);
 		var seed = 0;
 		console.log('Generating terrain...');
@@ -129,8 +137,11 @@
 		game.scene.add(terrain);
 
 
+		game.scene.add(new THREE.FogExp2(0xEFD1B5, 0.0025));
+
+
 		var monolith = new Physijs.BoxMesh(new THREE.CubeGeometry(2, 10, 2), new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
-		monolith.position.y = 65;
+		monolith.position.y = 40;
 		monolith.castShadow = true;
 		monolith.receiveShadow = true;
 		var collisionCounter = 0;
@@ -165,7 +176,9 @@
 		loader.load('models/portalradio/portalradio.js', function (geometry, materials) {
 				var radioCollider = new Physijs.BoxMesh(new THREE.CubeGeometry(0.5, 0.5, 0.25), new THREE.MeshBasicMaterial({ color: 0x00EE00, wireframe: true, transparent: true }));
 				radioCollider.position.x = -10;
-				radioCollider.position.y = 62;
+				radioCollider.position.y = 37;
+				//radioCollider.setCcdMotionThreshold(0.5);
+				//radioCollider.setCcdSweptSphereRadius(0.1);
 				radioCollider.visible = false;
 				var radioMesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
 				radioMesh.scale.set(2,2,2);
@@ -221,9 +234,6 @@
 		document.getElementById('game').insertBefore(game.renderer.domElement, document.getElementById('overlay'));
 
 		tickList.push(GAME.audio);
-		GAME.audio.initMeSpeak();
-
-		//GAME.net.connectToServer(game, 'http://4ytech.com:9980');
 	}
 
 	var clock = new THREE.Clock();

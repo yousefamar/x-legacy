@@ -1,4 +1,7 @@
-uniform int isDaytime;
+#ifdef GL_ES
+precision highp float;
+#endif
+
 uniform float terrainHeight;
 
 uniform sampler2D texture0;

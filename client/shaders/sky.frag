@@ -22,15 +22,15 @@ float lerp(float x0, float x1, float mu) {
 }
 */
 
-const vec3 BLACK		= vec3(0.0, 0.0, 0.0);
-const vec3 WHITE		= vec3(1.0, 1.0, 1.0);
-const vec3 SKY_BLUE		= vec3(0.5, 0.8, 1.0);
-const vec3 DARK_BLUE	= vec3(0.0, 0.0, 0.5);
-const vec3 BLACK_BLUE	= vec3(0.0, 0.0, 0.2);
-const vec3 DARK_ORANGE	= vec3(0.75, 0.4, 0.0);
+const vec4 BLACK		= vec4(0.0, 0.0, 0.0, 0.0);
+const vec4 WHITE		= vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 SKY_BLUE		= vec4(0.5, 0.8, 1.0, 1.0);
+const vec4 DARK_BLUE	= vec4(0.0, 0.0, 0.5, 1.0);
+const vec4 BLACK_BLUE	= vec4(0.0, 0.0, 0.2, 1.0);
+const vec4 DARK_ORANGE	= vec4(0.75, 0.4, 0.0, 1.0);
 
 vec4 calcSkyCol() {
-	vec3 col;
+	vec4 col;
 	float mu = pow(skyUV.y, BLNDXP);
 	if (time < 0.1) {
 		col = mix(mix(DARK_ORANGE, DARK_BLUE, mu), mix(WHITE, SKY_BLUE, mu), 10.0*time);
@@ -49,8 +49,7 @@ vec4 calcSkyCol() {
 		col = mix(mix(BLACK_BLUE, BLACK, mu), mix(DARK_ORANGE, DARK_BLUE, mu), 10.0*time-9.0);
 		col *= 0.5 * min(max(-cos(skyUV.x*PI2), 0.0) * cos(skyUV.y*PI_2) + cos((10.0*time-9.0)*PI_2), 1.0) + 0.5;
 	}
-
-	return vec4(col, 1.0);
+	return col;
 }
 
 void main() {
