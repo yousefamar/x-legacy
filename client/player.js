@@ -155,7 +155,7 @@ GAME.player.PlayerController = function (scene, player) {
 						break;
 					case 32: // space
 						// TODO: Make player height an attribute of Player.
-						if (distToGround() < 0.9001) velocity.y = 4;
+						if (distToGround() < 0.9001) velocity.y = 40;
 						break;
 				}
 			}, false);

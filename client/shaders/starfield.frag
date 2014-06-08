@@ -6,98 +6,97 @@ precision highp float;
 
 uniform float time;
 
-//varying vec4 worldCoords;
+//varying vec4 worldCoord;
 
-// Component wise blending
-#define Blend(base, blend, funcf)       vec3(funcf(base.r, blend.r), funcf(base.g, blend.g), funcf(base.b, blend.b))
-// Blend Funcs
-#define BlendScreenf(base, blend)       (1.0 - ((1.0 - base) * (1.0 - blend)))
-#define BlendMultiply(base, blend)       (base * blend)
-#define BlendScreen(base, blend)       Blend(base, blend, BlendScreenf)
+uniform sampler2D starMap;
+varying vec2 skyUV;
+//varying vec2 angles;
 
-vec3 nrand3( vec2 co )
-{
-    vec3 a = fract( cos( co.x*8.3e-3 + co.y )*vec3(1.3e5, 4.7e5, 2.9e5) );
-    vec3 b = fract( sin( co.x*0.3e-3 + co.y )*vec3(8.1e5, 1.0e5, 0.1e5) );
-    vec3 c = mix(a, b, 0.5);
-    return c;
+
+//
+// Description : Array and textureless GLSL 2D simplex noise function.
+//      Author : Ian McEwan, Ashima Arts.
+//  Maintainer : ijm
+//     Lastmod : 20110822 (ijm)
+//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
+//               Distributed under the MIT License. See LICENSE file.
+//               https://github.com/ashima/webgl-noise
+// 
+
+vec3 mod289(vec3 x) {
+	return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
 
-float snoise(vec3 uv, float res)
-{
-    const vec3 s = vec3(1e0, 1e2, 1e4);
-    
-    uv *= res;
-    
-    vec3 uv0 = floor(mod(uv, res))*s;
-    vec3 uv1 = floor(mod(uv+vec3(1.), res))*s;
-    
-    vec3 f = fract(uv); f = f*f*(3.0-2.0*f);
-    
-    vec4 v = vec4(uv0.x+uv0.y+uv0.z, uv1.x+uv0.y+uv0.z,
-    uv0.x+uv1.y+uv0.z, uv1.x+uv1.y+uv0.z);
-    
-    vec4 r = fract(sin(v*1e-3)*1e5);
-    float r0 = mix(mix(r.x, r.y, f.x), mix(r.z, r.w, f.x), f.y);
-    
-    r = fract(sin((v + uv1.z - uv0.z)*1e-3)*1e5);
-    float r1 = mix(mix(r.x, r.y, f.x), mix(r.z, r.w, f.x), f.y);
-    
-    return mix(r0, r1, f.z)*2.-0.3;
+vec2 mod289(vec2 x) {
+	return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
 
-vec3 clouds(vec2 tc,float iter)
-{
-	tc /= 1000.0;
-    float color = 0.0;
-    for(int i = 0; i <= 3; i++)
-    {
-        float power = pow(2.0, float(i));
-        color += (0.5 / power) * snoise(vec3(tc,0.0), power*11.0);
-    }
-    return vec3(color,color,color);
+vec3 permute(vec3 x) {
+	return mod289(((x*34.0)+1.0)*x);
 }
 
-vec3 getcolor(vec2 coords,float intensity)
-{
-	coords = coords/6000.0;
-	return normalize(vec3(snoise(vec3(coords,0.0),intensity),
-    snoise(vec3(coords,0.1),intensity),
-    snoise(vec3(coords,0.2),intensity)   ));
+float snoise(vec2 v) {
+	const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0
+						0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
+						-0.577350269189626, // -1.0 + 2.0 * C.x
+						0.024390243902439); // 1.0 / 41.0
+	// First corner
+	vec2 i  = floor(v + dot(v, C.yy) );
+	vec2 x0 = v -   i + dot(i, C.xx);
+
+	// Other corners
+	vec2 i1;
+	//i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0
+	//i1.y = 1.0 - i1.x;
+	i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+	// x0 = x0 - 0.0 + 0.0 * C.xx ;
+	// x1 = x0 - i1 + 1.0 * C.xx ;
+	// x2 = x0 - 1.0 + 2.0 * C.xx ;
+	vec4 x12 = x0.xyxy + C.xxzz;
+	x12.xy -= i1;
+
+	// Permutations
+	i = mod289(i); // Avoid truncation effects in permutation
+	vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+		+ i.x + vec3(0.0, i1.x, 1.0 ));
+
+	vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+	m = m*m ;
+	m = m*m ;
+
+	// Gradients: 41 points uniformly over a line, mapped onto a diamond.
+	// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)
+
+	vec3 x = 2.0 * fract(p * C.www) - 1.0;
+	vec3 h = abs(x) - 0.5;
+	vec3 ox = floor(x + 0.5);
+	vec3 a0 = x - ox;
+
+	// Normalise gradients implicitly by scaling m
+	// Approximation of: m *= inversesqrt( a0*a0 + h*h );
+	m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+
+	// Compute final noise value at P
+	vec3 g;
+	g.x  = a0.x  * x0.x  + h.x  * x0.y;
+	g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+	return 130.0 * dot(m, g);
 }
 
-vec3 genstars(float starsize, float density, float intensity, vec2 seed)
-{
-	vec3 rnd = nrand3( floor(seed*(1.0/starsize)) );
-	vec3 stars = vec3(pow(rnd.y,density))*intensity;
-	rnd = clouds(seed,1.0);
-	return BlendMultiply(stars,rnd);
-}
-
-void main(void)
-{
-	vec2 offset = vec2(time,time);
-	float n = 30.0;
-    vec2 coords = gl_FragCoord.xy;
-	vec3 stars = clouds(coords+offset*n,5.0);
-	vec3 color = getcolor(coords+offset*n,11.0)*0.2;
-	color = BlendMultiply(stars,color);
-	stars = genstars(3.0,16.0,1.0,coords+offset*n);
-	color = BlendScreen(color,stars);
-	n=20.0;
-	stars = genstars(2.0,16.0,1.0,coords+offset*n);
-	n=10.0;
-	color = BlendScreen(color,stars);
-	stars = genstars(1.0,16.0,1.0,coords+offset*n)*0.8;
-	color = BlendScreen(color,stars);
-	gl_FragColor = vec4(color,1);
-}
-
-
-/*
-uniform float randColor;
 
 void main() {
-    gl_FragColor = vec4(randColor);
+	vec2 skyCoord = vec2(skyUV.x*128.0, skyUV.y*64.0);
+	float noise = abs(snoise(skyCoord));
+
+	if (noise>0.98)
+		gl_FragColor = vec4(noise);
+	else
+		gl_FragColor = vec4(0.0);
+
+	/*
+	if (mod(skyCoord.x*1024.0, 128.0) < 1.0 || mod(skyCoord.y*512.0, 64.0) < 1.0)
+		gl_FragColor = vec4(1.0);
+	else
+		gl_FragColor = vec4(0.0);
+	*/
 }
-*/

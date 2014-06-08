@@ -13,14 +13,24 @@
 		//game.scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
 
 		var sky = new THREE.Object3D();
+
+		//starCoords = [new THREE.Vector2(10, 10), new THREE.Vector2(20, 20)];
+		//starSizes = [1.0, 1.0];
+
 		var uniforms = {
+			skyRadius: { type: 'f', value: 1000.0 },
 			time: { type: 'f', value: 0.0 },
 			//lookVec: { type: 'v3', value: new THREE.Vector3(0, 0, -1) }
+			//starCoords: { type: "v2v", value: starCoords },
+			//starSizes: { type: "fv1", value: starSizes }
+			//starMap: { type: "t", value: THREE.ImageUtils.loadTexture( "./images/starmap.png" ) }
 		};
 		var starfieldMat = new THREE.ShaderMaterial({ uniforms: uniforms, vertexShader: GAME.utils.xhrSyncGet('./shaders/starfield.vert'), fragmentShader: GAME.utils.xhrSyncGet('./shaders/starfield.frag') });
 		starfieldMat.side = THREE.BackSide;
-		sky.add(new THREE.Mesh(new THREE.SphereGeometry(10000, 8, 8), starfieldMat));
-		sky.add(new THREE.Mesh(new THREE.SphereGeometry(1000, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00EE00/*0x220044*/, wireframe: true, transparent: true })));
+		var starfield = new THREE.Mesh(new THREE.SphereGeometry(1000, 128, 64, 0, 2 * Math.PI, 0, Math.PI * 0.5), starfieldMat);
+		//starfield.rotation.y = -0.5 * Math.PI;
+		sky.add(starfield);
+		//sky.add(new THREE.Mesh(new THREE.SphereGeometry(1000, 128, 64, 0, 2 * Math.PI, 0, Math.PI * 0.5), new THREE.MeshBasicMaterial({ color: 0x00EE00/*0x220044*/, wireframe: true, transparent: true })));
 		sky.tick = function (delta) {
 			uniforms.time.value += 0.01;
 			game.scene.entityManager.tickQueue.add(this);
@@ -101,7 +111,7 @@
 				GAME.audio.load(['audio/mplith.ogg'], function(source) {
 					source.setPosition(radioCollider.position);
 					source.setLoop(true);
-					source.play();
+					//source.play();
 					radioCollider.addEventListener('collision', function(other_object, relative_velocity, relative_rotation) {
 						if (other_object instanceof Physijs.SphereMesh)
 							source.getAudioFlag('paused')?source.play():source.pause();
