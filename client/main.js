@@ -1,7 +1,8 @@
 (function() {
 	const TICK_INTERVAL_MS = 1000.0/60.0;
 
-	var game = this;
+	GAME.game = this;
+	var game = GAME.game;
 
 	var tickList = [];
 
@@ -10,6 +11,24 @@
 		game.scene = new GAME.world.Scene();
 
 		//game.scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
+
+		var sky = new THREE.Object3D();
+		var uniforms = {
+			time: { type: 'f', value: 0.0 },
+			//lookVec: { type: 'v3', value: new THREE.Vector3(0, 0, -1) }
+		};
+		var starfieldMat = new THREE.ShaderMaterial({ uniforms: uniforms, vertexShader: GAME.utils.xhrSyncGet('./shaders/starfield.vert'), fragmentShader: GAME.utils.xhrSyncGet('./shaders/starfield.frag') });
+		starfieldMat.side = THREE.BackSide;
+		sky.add(new THREE.Mesh(new THREE.SphereGeometry(10000, 8, 8), starfieldMat));
+		sky.add(new THREE.Mesh(new THREE.SphereGeometry(1000, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00EE00/*0x220044*/, wireframe: true, transparent: true })));
+		sky.tick = function (delta) {
+			uniforms.time.value += 0.01;
+			game.scene.entityManager.tickQueue.add(this);
+		};
+		game.scene.entityManager.tickQueue.add(sky);
+		game.scene.add(sky);
+
+		//game.scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0025);
 
 		var sunLight = new THREE.HemisphereLight(0xFFFFFF, 0x00FF00, 0.1);
 		game.scene.add(sunLight);
@@ -51,7 +70,7 @@
 		});
 
 		//var monolithSound = new GAME.audio.StreamingSource(game, ['audio/monolith.mp3', 'audio/monolith.ogg'], monolith.position);
-		//monolithSound.play(true);
+		//monolithSound.setLoop(true).play();
 
 		/*
 		var wave = 0;
@@ -81,7 +100,12 @@
 				game.scene.add(radioCollider);
 				GAME.audio.load(['audio/mplith.ogg'], function(source) {
 					source.setPosition(radioCollider.position);
-					source.play(true);
+					source.setLoop(true);
+					source.play();
+					radioCollider.addEventListener('collision', function(other_object, relative_velocity, relative_rotation) {
+						if (other_object instanceof Physijs.SphereMesh)
+							source.getAudioFlag('paused')?source.play():source.pause();
+					});
 					radioMesh.tick = function (delta) {
 						source.setPosition(radioCollider.position);
 						var freqByteData = new Uint8Array(source.analyser.frequencyBinCount);
@@ -98,8 +122,9 @@
 		game.player = new GAME.player.Player(game.scene);
 		game.player.position.y = 1;
 		game.player.position.z = 20;
+		sky.position = game.player.position;
 		game.player.controller = new GAME.player.PlayerController(game.scene, game.player);
-		game.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight);//, 1, 10000);
+		game.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
 		game.player.head.add(game.camera);
 		//game.player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
 		// TODO: Consider restructuring to make PlayerController superior.
@@ -137,6 +162,7 @@
 		document.getElementById('game').insertBefore(game.renderer.domElement, document.getElementById('overlay'));
 
 		tickList.push(GAME.audio);
+		GAME.audio.initMeSpeak();
 
 		GAME.net.connectToServer(game, 'http://4ytech.com:9980');
 	}

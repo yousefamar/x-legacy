@@ -21,10 +21,23 @@ GAME.namespace('net').connectToServer = function (game, address) {
 
 	GAME.net.socket.on('log', function (packet) {
 		GAME.gui.log(packet.msg);
+		if (packet.mute) return;
+		GAME.audio.loadSpeech(packet.msg, function (audioElement) {
+			var source = new GAME.audio.AudioSourceStreaming(audioElement);
+			// TODO: Follow position while still playing.
+			source.setPosition(game.camera.localToWorld(new THREE.Vector3()));
+			source.play();
+		}, { pitch: 100 });
 	});
 
 	GAME.net.socket.on('chat', function (packet) {
 		GAME.gui.log(packet.username+": "+packet.msg);
+		GAME.audio.loadSpeech(packet.msg, function (audioElement) {
+			var source = new GAME.audio.AudioSourceStreaming(audioElement);
+			// TODO: Follow position while still playing.
+			source.setPosition(game.scene.entityManager.players[packet.username].position);
+			source.play();
+		});
 	});
 
 	GAME.net.socket.on('ping', function () {
@@ -38,4 +51,11 @@ GAME.net.submitFormInput = function (form) {
 	GAME.net.socket.emit('chat', text);
 	GAME.gui.log("You: "+text);
 	form.input.value = "";
+	GAME.audio.loadSpeech(text, function (audioElement) {
+		var source = new GAME.audio.AudioSourceStreaming(audioElement);
+		// TODO: Avoid static calls.
+		// TODO: Follow position while still playing.
+		source.setPosition(GAME.game.camera.localToWorld(new THREE.Vector3()));
+		source.play();
+	});
 };

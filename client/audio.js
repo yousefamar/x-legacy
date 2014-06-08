@@ -20,13 +20,14 @@ GAME.audio.load = function (sources, callback, stream) {
 				callback(new GAME.audio.AudioSourceBuffered(buffer));
 				// TODO: Handle error case.
 			});
-		}
+		};
 		request.send();
 	}
 };
 
 GAME.audio.tick = function (delta, game) {
 	var camWorldPos = game.camera.localToWorld(new THREE.Vector3());
+	// TODO: Store this somewhere.
 	var camLookVec = game.camera.localToWorld(new THREE.Vector3(0, 0, -1)).sub(camWorldPos).normalize();
 
 	GAME.audio.context.listener.setPosition(camWorldPos.x, camWorldPos.y, camWorldPos.z);
@@ -68,22 +69,41 @@ GAME.audio.AudioSourceStreaming = function (audioElement) {
 	this.analyser = GAME.audio.context.createAnalyser();
 	this.panner.connect(this.analyser);
 	this.analyser.connect(GAME.audio.context.destination);
+
+	var scope = this;
+	setTimeout(function(){
+		// TODO: Allow concurrent speech to be disabled (by using only one source).
+		var source = GAME.audio.context.createMediaElementSource(scope.audioElement);
+		source.connect(scope.panner);
+
+		// TODO: Test more thoroughly and check for memory leaks.
+		scope.audioElement.addEventListener('ended', function(){
+			source.disconnect();
+		});
+	}, 0);
 };
 
 GAME.audio.AudioSourceStreaming.prototype = Object.create(THREE.Object3D.prototype);
+
+GAME.audio.AudioSourceStreaming.prototype.getAudioFlag = function(flagName) {
+	return this.audioElement[flagName];
+};
 
 GAME.audio.AudioSourceStreaming.prototype.setPosition = function(position) {
 	this.panner.setPosition(position.x, position.y, position.z);
 };
 
-GAME.audio.AudioSourceStreaming.prototype.play = function(loop) {
-	var scope = this;
-	setTimeout(function(){
-		var source = GAME.audio.context.createMediaElementSource(scope.audioElement);
-		source.connect(scope.panner);
-		scope.audioElement.loop = loop;
-		scope.audioElement.play();
-	}, 0);
+GAME.audio.AudioSourceStreaming.prototype.setLoop = function(flag) {
+	this.audioElement.loop = flag;
+	return this;
+};
+
+GAME.audio.AudioSourceStreaming.prototype.play = function() {
+	this.audioElement.play();
+};
+
+GAME.audio.AudioSourceStreaming.prototype.pause = function() {
+	this.audioElement.pause();
 };
 
 /*
@@ -114,3 +134,32 @@ GAME.audio.StreamingSource = function (game, sources, position, radius, volume) 
 	game.scene.entityManager.tickQueue.add(this);
 };
 */
+
+GAME.audio.initMeSpeak = function () {
+	meSpeak.loadConfig('audio/mespeak/mespeak_config.json');
+	meSpeak.loadVoice('audio/mespeak/voices/en/en.json');
+	GAME.audio.loadSpeech('', function (audioElement) {});
+	/*
+	meSpeak.speak('hello world', { option1: value1, option2: value2 .. });
+	options:
+	* amplitude: How loud the voice will be (default: 100)
+	* pitch: The voice pitch (default: 50)
+	* speed: The speed at which to talk (words per minute) (default: 175)
+	* voice: Which voice to use (default: last voice loaded or defaultVoice, see below)
+	* wordgap: Additional gap between words in 10 ms units (default: 0)
+	*/
+	//if (meSpeak.isVoiceLoaded('de') meSpeak.setDefaultVoice('de');
+	// note: the default voice is always the the last voice loaded
+
+	//meSpeak.loadVoice('fr.json', userCallback);
+	// userCallback is an optional callback-handler. The callback will receive two arguments:
+	// * a boolean flag for success
+	// * either the id of the voice, or a reason for errors ('network error', 'data error', 'file error')
+	//alert(meSpeak.getDefaultVoice()) // 'fr'
+};
+
+GAME.audio.loadSpeech = function (text, callback, args) {
+	args = args || {};
+	args.callback = callback || function (audioElement) {audioElement.play();};
+	meSpeak.speak(text, args);
+};

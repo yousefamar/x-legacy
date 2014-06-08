@@ -28,7 +28,7 @@ SERVER.utils.Queue.prototype.poll = function () {
 SERVER.io = require('socket.io').listen(9980);
 
 SERVER.io.sockets.on('connection', function (socket) {
-	socket.emit('log', { msg: "You've successfully connected to 4YTech.com on port 9980!" });
+	socket.emit('log', { msg: "You've successfully connected to 4YTech.com on port 9980!", mute: true });
 
 	// TODO: Read all of this off of a database.
 	socket.on('join', function (user, state) {

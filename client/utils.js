@@ -19,7 +19,12 @@ GAME.namespace = function() {
 
 // TODO: Organise.
 
-GAME.namespace('utils').include = function(filename) {
+
+GAME.namespace('utils').getRoot = function() {
+	return 'https://dl.dropbox.com/u/704818/Escape%20Pod/Games/';
+};
+
+GAME.utils.include = function(filename) {
 	//TODO: Fix asynchronicity.
 	var script = document.createElement('script');
 	script.async = false;
@@ -28,8 +33,11 @@ GAME.namespace('utils').include = function(filename) {
 	//appendChild(document.createTextNode("<script type=\"text/javascript\" src=\""+filename+"\"></script>"));
 };
 
-GAME.utils.getRoot = function() {
-	return 'https://dl.dropbox.com/u/704818/Escape%20Pod/Games/';
+GAME.utils.xhrSyncGet = function (url) {
+	var xhr = new XMLHttpRequest();
+	xhr.open("GET", url, false);
+	xhr.send();
+	return xhr.responseText;
 };
 
 GAME.utils.centerElement = function(element) {
