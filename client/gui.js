@@ -49,3 +49,41 @@ GAME.gui.log = function (text) {
 		passiveChat.removeChild(passiveChat.firstChild);
 	}, false);
 };
+
+GAME.gui.submitConsoleInput = function (form) {
+	var text = form.input.value.trim();
+	form.input.value = '';
+	if (!text.length) return;
+
+	if (text.charAt(0) == '/') {
+		var input = text.split(' ');
+		var cmd = input[0].substring(1);
+		var args = input.slice(1);
+
+		switch(cmd) {
+		case 'join':
+			if (args.length > 0)
+				// TODO: Error detection, case-sesitivity, non-existent host, etc.
+				GAME.net.p2p.join(args[0]);
+			else
+				GAME.gui.log('Join syntax: "/join [HostID]".');
+			break;
+		case 'host':
+			GAME.net.p2p.host();
+			break;
+		default:
+			GAME.gui.log('Invalid command.');
+			break;
+		}
+	} else {
+		GAME.net.p2p.send('chat', text);
+		GAME.gui.log('You: '+text);
+		GAME.audio.loadSpeech(text, function (audioElement) {
+			var source = new GAME.audio.AudioSourceStreaming(audioElement);
+			// TODO: Avoid static calls.
+			// TODO: Follow position while still playing.
+			source.setPosition(GAME.game.camera.localToWorld(new THREE.Vector3()));
+			source.play();
+		});
+	}
+};

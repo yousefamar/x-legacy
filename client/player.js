@@ -39,7 +39,7 @@ GAME.player.Player.prototype.addModel = function() {
 	return this;
 };
 
-GAME.player.Player.prototype.onStateReceived = function(state, latOffset) {
+GAME.player.Player.prototype.onStateReceived = function(state) {
 	/*
 	state.timeStamp = new Date().getTime();
 	this.states.add(state);
@@ -155,7 +155,7 @@ GAME.player.PlayerController = function (scene, player) {
 						break;
 					case 32: // space
 						// TODO: Make player height an attribute of Player.
-						if (distToGround() < 1.33) velocity.y = 100;
+						if (scope.enabled && distToGround() < 1.33) velocity.y = 100;
 						break;
 				}
 			}, false);
@@ -201,7 +201,7 @@ GAME.player.PlayerController = function (scene, player) {
 	this.update = function (delta) {
 		//netTimer += delta;
 		//if (netTimer >= 1) {
-		//	GAME.net.emit('state', { pos: player.position, rot: player.rotation });
+			GAME.net.p2p.send('state', { pos: player.position.toArray(), rot: player.rotation.toArray() });
 		//	netTimer = 0;
 		//}
 

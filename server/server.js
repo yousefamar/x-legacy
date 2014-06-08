@@ -1,3 +1,4 @@
+/*
 'use strict';
 var SERVER = {};
 
@@ -184,3 +185,7 @@ SERVER.sigserv = SERVER.io.of('/sigserv').on('connection', function (socket) {
 
 // TODO: Consider storing rooms rather than hosts.
 SERVER.sigserv.hosts = {};
+*/
+var PeerServer = require('peer').PeerServer;
+var server = new PeerServer({ port: 9980 });
+console.log('PeerServer started.');

@@ -28,7 +28,8 @@ GAME.utils.loadScriptAsync = function(url, callback) {
 	var script = document.createElement('script');
 	//script.async = false;
 	script.src = url;
-	script.onload = callback;
+	if (callback)
+		script.onload = callback;
 	document.head.appendChild(script);
 	//appendChild(document.createTextNode("<script type=\"text/javascript\" src=\""+filename+"\"></script>"));
 };

@@ -162,6 +162,7 @@ GAME.audio.initMeSpeak = function () {
 };
 
 GAME.audio.loadSpeech = function (text, callback, args) {
+	if (!GAME.audio.enableTTS) return;
 	args = args || {};
 	args.callback = callback || function (audioElement) {audioElement.play();};
 	meSpeak.speak(text, args);
