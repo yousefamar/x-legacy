@@ -1,5 +1,5 @@
 //TODO: Come up with a proper structure for this.
-GAME.namespace('input').initPointerLock = function(playerController) {
+GAME.namespace('input').init = function(scene, camera, playerController) {
 	var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
 	if (havePointerLock) {
@@ -46,7 +46,7 @@ GAME.namespace('input').initPointerLock = function(playerController) {
 
 			if ( /Firefox/i.test( navigator.userAgent ) ) {
 
-				var fullscreenchange = function ( event ) {
+				var fullscreenchange = function (event) {
 
 					if ( document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element ) {
 
@@ -79,4 +79,15 @@ GAME.namespace('input').initPointerLock = function(playerController) {
 		//instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
 
 	}
+
+	document.addEventListener('keydown', function (event) {
+		if (event.keyCode == 66) {
+			ball = new Physijs.SphereMesh(new THREE.SphereGeometry(1, 8, 8), new THREE.MeshPhongMaterial({ color: 0x0000FF }));
+			ball.position.copy(playerController.getObject().position);
+			ball.castShadow = true;
+			ball.receiveShadow = true;
+			scene.add(ball);
+			ball.setLinearVelocity(new THREE.Vector3(0, 0, -1).applyMatrix4(playerController.getPitchObject().matrixWorld).sub(playerController.getObject().position).normalize().multiplyScalar(100));
+		}
+	}, false);
 };

@@ -1,63 +1,71 @@
 (function() {
-	var player, camera, controller, scene, renderer, monolithSound, monolith;
+	var player, camera, controller, scene, renderer, monolithSound, monolith, collisionCounter=0;
 	var time = Date.now();
 
-	function createScene() {
-		scn = new THREE.Scene();
+	//TODO: Structure.
+	function buildScene() {
+		scene = new Physijs.Scene();
 
-		var light = new THREE.DirectionalLight(0xffffff, 1);
-		light.position.set(100, 100, 100);
+		scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
+
+		var sunLight = new THREE.HemisphereLight(0xFFFFFF, 0x00FF00, 0.1);
+		scene.add(sunLight);
+
+		var light = new THREE.SpotLight(0xFFFFFF, 1, 1000);
+		light.position.set(100, 140, 100);
 		light.castShadow = true;
-		scn.add(light);
+		//light.shadowCameraVisible = true;
+		//light.shadowCameraRight = 50;
+		//light.shadowCameraLeft = -50;
+		//light.shadowCameraTop = 50;
+		//light.shadowCameraBottom = -50;
+		light.shadowMapWidth = 1024;
+		light.shadowMapHeight = 1024;
+		scene.add(light);
 
-		//light = new THREE.DirectionalLight( 0xffffff, 0.75 );
-		//light.position.set( -1, - 0.5, -1 );
-		//light.castShadow = true;
-		//scn.add(light);
-
-		var ground = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 100, 100), new THREE.MeshPhongMaterial({ color: 0x00ff00 }));
+		var ground = new Physijs.PlaneMesh(new THREE.PlaneGeometry(1000, 1000, 100, 100), new THREE.MeshPhongMaterial({ color: 0x00FF00 }), 0);
 		ground.lookAt(new THREE.Vector3(0,1,0));
-		ground.castShadow = false;
+		ground.receiveShadow = false;
 		ground.receiveShadow = true;
-		scn.add(ground);
+		scene.add(ground);
 
-		monolith = new THREE.Mesh(new THREE.CubeGeometry(20, 100, 20), new THREE.MeshPhongMaterial({ color: 0xff0000 }));
+		monolith = new Physijs.BoxMesh(new THREE.CubeGeometry(20, 100, 20), new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
 		monolith.position.y = 50;
 		monolith.castShadow = true;
 		monolith.receiveShadow = true;
-		scn.add(monolith);
+		monolith.addEventListener('collision', function(other_object, relative_velocity, relative_rotation) {
+			if (other_object instanceof Physijs.SphereMesh) {
+				collisionCounter++;
+				if (collisionCounter >= 100) {
+					monolith.setLinearVelocity(new THREE.Vector3(0,100,0));monolith.setAngularVelocity(new THREE.Vector3(1,1,1));
+					collisionCounter = 0;
+				}
+			}
+		});
+		light.target = monolith;
+		scene.add(monolith);
 
 		monolithSound = new GAME.audio.AudioSource(['sounds/376737_Skullbeatz___Bad_Cat_Maste.mp3', 'sounds/376737_Skullbeatz___Bad_Cat_Maste.ogg'], 200, 1);
 		monolithSound.position.copy(monolith.position);
-		monolithSound.play();
+		monolithSound.play(true);
 
-		return scn;
-	}
-
-	function init() {
 		camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight);//, 1, 10000 );
 		player = new THREE.Object3D();
 		player.add(camera);
-		//camera.position.y = -1000;
-		//camera.position.z = 500;
-		//camera.rotation.x = 20;
+		//player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
 
 		controller = new GAME.playerController.PlayerController(player);
 		controller.getObject().position.z = 200;
-		GAME.input.initPointerLock(controller);
-
-	//	controller = new THREE.FirstPersonControls(camera);
-
-	//	controller.movementSpeed = 70;
-	//	controller.lookSpeed = 0.15;
-		//controller.activeLook = false;
-		//controller.noFly = true;
-		//controller.lookVertical = false;
-
-
-		scene = createScene();
-
+		GAME.input.init(scene, camera, controller);
 		scene.add(controller.getObject());
+	}
+
+	function init() {
+		Physijs.scripts.worker = './physics/physijs_worker.js';
+		Physijs.scripts.ammo = './ammo.js';
+
+		buildScene();
+
 
 		renderer = new THREE.WebGLRenderer();
 		renderer.setSize(window.innerWidth, window.innerHeight);
@@ -86,6 +94,8 @@
 
 		//controller.isOnObject(controller.getObject().position.y<=10);
 		controller.update(Date.now() - time);
+
+		scene.simulate();
 
 		renderer.render(scene, camera);
 		

@@ -1,63 +1,13 @@
 <head>
-	<style>
-		body {
-			margin: 0;
-			padding: 0;
-		}
-		p {
-			font: 12pt Tahoma;
-			color: white;
-			text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
-		}
-		textarea {
-			resize: none;
-		}
-		textarea#console {
-			transition: height 1s;
-			-moz-transition: height 1s;
-			-webkit-transition: height 1s;
-			-o-transition: height 1s;
-		}
-		textarea#console.minSize {
-			height: 0em;
-		}
-		textarea#console.maxSize {
-			height: 20em;
-		}
-		div#game {
-			position: relative;
-		}
-		div#instructions {
-			position: absolute;
-			top: 50%;
-			left: 50%;
-		}
-		div#canvas {
-			opacity: 0.5;
-		}
-		div#blocker {
-			position: absolute;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			color: white;
-			background-color: rgba(0,0,0,0.5);
-		}
-		div#overlay {
-			position: absolute;
-			margin-left: 16px;
-			bottom: 0;
-			left: 0;
-			opacity: 0.5;
-			vertical-align: bottom;
-		}
-	</style>
+	<link rel="stylesheet" type="text/css" href="./style.css"></link>
 	<script src="./utils.js"></script>
 	<script src="./three.min.js"></script>
+	<!--
 	<script src="./socket.io.min.js"></script>
 	<script src="./net.js"></script>
+	-->
 	<script src="./input.js"></script>
+	<script src="./physics/physi.js"></script>
 	<script src="./audio.js"></script>
 	<script src="./playercontroller.js"></script>
 	<script src="./main.js"></script>
@@ -84,13 +34,17 @@
 			</center>
 		</div>
 		<div id="instructions">
-			<center>
-				<p>
-					Welcome!<br><br>
-					Controls: Mouse, WASD, Space.<br>
-					Click anywhere to begin!
-				</p>
-			</center>
+			<p>
+				<center>Welcome!</center><br><br>
+				Controls:<br>
+				<ul>
+					<li>Mouse = Look</li>
+					<li>WASD = Move</li>
+					<li>Space = Jump</li>
+					<li>B = Shoot ball (Hold for rapid-fire)</li>
+				</ul><br>
+				<center>Shoot the monolith 100 times to make it fly!<br><br>Click anywhere to play.</center>
+			</p>
 		</div>
 		<script>GAME.utils.centerElement(document.getElementById('instructions'));</script>
 	</div>

@@ -2,6 +2,8 @@
  * @author mrdoob / http://mrdoob.com/
  * Modified by Paraknight 2013-03-26.
  */
+
+ //TODO: Restructure and use only Object3Ds.
 GAME.namespace('playerController').PlayerController = function (player) {
 
 	var scope = this;
@@ -99,14 +101,18 @@ GAME.namespace('playerController').PlayerController = function (player) {
 
 	};
 
-	document.addEventListener( 'mousemove', onMouseMove, false );
-	document.addEventListener( 'keydown', onKeyDown, false );
-	document.addEventListener( 'keyup', onKeyUp, false );
+	document.addEventListener('mousemove', onMouseMove, false);
+	document.addEventListener('keydown', onKeyDown, false);
+	document.addEventListener('keyup', onKeyUp, false);
 
 	this.enabled = false;
 
 	this.getObject = function () {
 		return yawObject;
+	};
+
+	this.getPitchObject = function () {
+		return pitchObject;
 	};
 
 	this.isOnObject = function ( boolean ) {

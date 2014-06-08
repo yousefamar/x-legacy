@@ -10,7 +10,8 @@ GAME.namespace('audio').AudioSource = function (sources, radius, volume) {
 
 	this.position = new THREE.Vector3();
 
-	this.play = function () {
+	this.play = function (loop) {
+		audio.loop = loop;
 		audio.play();
 	}
 

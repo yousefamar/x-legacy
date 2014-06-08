@@ -1,0 +1,51 @@
+body {
+	margin: 0;
+	padding: 0;
+	background-color: #204;
+}
+textarea {
+	resize: none;
+}
+textarea#console {
+	transition: height 1s;
+	-moz-transition: height 1s;
+	-webkit-transition: height 1s;
+	-o-transition: height 1s;
+}
+textarea#console.minSize {
+	height: 0em;
+}
+textarea#console.maxSize {
+	height: 20em;
+}
+div#game {
+	position: relative;
+}
+div#instructions {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	font: 12pt Tahoma;
+	color: white;
+	text-shadow: -1px 0 #008888, 0 1px #008888, 1px 0 #008888, 0 -1px #008888;
+}
+div#canvas {
+	opacity: 0.5;
+}
+div#blocker {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	color: white;
+	background-color: rgba(0,0,0,0.5);
+}
+div#overlay {
+	position: absolute;
+	margin-left: 16px;
+	bottom: 0;
+	left: 0;
+	opacity: 0.5;
+	vertical-align: bottom;
+}
