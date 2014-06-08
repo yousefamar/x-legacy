@@ -84,6 +84,11 @@ SERVER.io.sockets.on('connection', function (socket) {
 						// TODO: Handle errors.
 						callback(sessionDesc);
 					});
+					if (otherSocket.candidates) {
+						for (var i = 0; i < otherSocket.candidates.length; i++)
+							socket.peer.emit('candidate', otherSocket.candidates[i]);
+						delete otherSocket.candidates;
+					}
 				}
 			});
 		});
@@ -98,8 +103,14 @@ SERVER.io.sockets.on('connection', function (socket) {
 	});
 
 	socket.on('candidate', function (candidate) {
-		if (socket.peer)
+		if (socket.peer) {
 			socket.peer.emit('candidate', candidate);
+		} else {
+			if (!socket.candidates)
+				socket.candidates = [];
+			socket.candidates.push(candidate);
+			//console.log('Pushing candidate. Current count: '+socket.candidates.length);
+		}
 	});
 
 	socket.on('chat', function (message) {
@@ -118,6 +129,11 @@ SERVER.io.sockets.on('connection', function (socket) {
 				});
 			});
 		});
+	});
+
+	socket.on('message', function(message) {
+		console.log(message);
+		socket.broadcast.emit('message', message);
 	});
 
 	socket.on('echo', function (string) {

@@ -81,10 +81,13 @@
 						GAME.core.Main.main();
 						break;
 					case 2:
-						GAME.net.ConnectionP2P.join('');
+						GAME.net.ConnectionP2P.join(username);
 						break;
 					case 3:
 						GAME.net.ConnectionP2P.host();
+						break;
+					case 4:
+						GAME.net.ConnectionP2P.send('Hi.');
 						break;
 					default:
 						alert('Feature not yet implemented.');
@@ -95,9 +98,9 @@
 				<center>
 					<h1>The Game.</h1><br><br>
 					<button type="button" onclick="startGame(1);">Single Player</button><br>
-					<button type="button" onclick="startGame(2,'');">Join</button><br>
+					<button type="button" onclick="startGame(2,'Player474');">Join</button><br>
 					<button type="button" onclick="startGame(3);">Host</button><br>
-					<button type="button" onclick="startGame(0);">MMO Thing</button><br>
+					<button type="button" onclick="startGame(4);">MMO Thing</button><br>
 					<button type="button" onclick="startGame(0);">Bla</button><br>
 				</center>
 			</div>
