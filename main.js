@@ -1,20 +1,22 @@
 (function() {
-	var player, camera, controller, scene, renderer, monolithSound, monolith, collisionCounter=0;
+	var player, camera, scene, renderer, stats, monolithSound, monolith, collisionCounter=0;
 	var time = Date.now();
 
 	//TODO: Structure.
 	function buildScene() {
-		scene = new Physijs.Scene();
+		scene = new GAME.world.Scene();
 
-		scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
+		//scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
 
 		var sunLight = new THREE.HemisphereLight(0xFFFFFF, 0x00FF00, 0.1);
 		scene.add(sunLight);
 
 		var light = new THREE.SpotLight(0xFFFFFF, 1, 1000);
-		light.position.set(100, 140, 100);
+		light.position.set(10, 14, 10);
 		light.castShadow = true;
 		//light.shadowCameraVisible = true;
+		light.shadowCameraNear = 5;
+		light.shadowCameraFar = 500;
 		//light.shadowCameraRight = 50;
 		//light.shadowCameraLeft = -50;
 		//light.shadowCameraTop = 50;
@@ -29,15 +31,16 @@
 		ground.receiveShadow = true;
 		scene.add(ground);
 
-		monolith = new Physijs.BoxMesh(new THREE.CubeGeometry(20, 100, 20), new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
-		monolith.position.y = 50;
+		monolith = new Physijs.BoxMesh(new THREE.CubeGeometry(2, 10, 2), new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
+		monolith.position.y = 5;
 		monolith.castShadow = true;
 		monolith.receiveShadow = true;
 		monolith.addEventListener('collision', function(other_object, relative_velocity, relative_rotation) {
 			if (other_object instanceof Physijs.SphereMesh) {
 				collisionCounter++;
 				if (collisionCounter >= 100) {
-					monolith.setLinearVelocity(new THREE.Vector3(0,100,0));monolith.setAngularVelocity(new THREE.Vector3(1,1,1));
+					monolith.setLinearVelocity(new THREE.Vector3(0,20,0));
+					monolith.setAngularVelocity(new THREE.Vector3(1,1,1));
 					collisionCounter = 0;
 				}
 			}
@@ -45,19 +48,29 @@
 		light.target = monolith;
 		scene.add(monolith);
 
-		monolithSound = new GAME.audio.AudioSource(['sounds/376737_Skullbeatz___Bad_Cat_Maste.mp3', 'sounds/376737_Skullbeatz___Bad_Cat_Maste.ogg'], 200, 1);
+		monolithSound = new GAME.audio.AudioSource(['sounds/376737_Skullbeatz___Bad_Cat_Maste.mp3', 'sounds/376737_Skullbeatz___Bad_Cat_Maste.ogg'], 21, 1);
 		monolithSound.position.copy(monolith.position);
 		monolithSound.play(true);
 
+		player = new GAME.player.Player(scene);
+		player.position.y = 1;
+		player.position.z = 20;
+		player.controller = new GAME.player.PlayerController(scene, player);
 		camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight);//, 1, 10000 );
-		player = new THREE.Object3D();
-		player.add(camera);
+		player.head.add(camera);
 		//player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
+		// TODO: Consider restructuring to make PlayerController superior.
+		player.tick = function () {
+			//player.controller.isOnObject(player.position.y<=10);
+			player.controller.update(Date.now() - time);
+			time = Date.now();
+			scene.entityManager.tickQueue.add(this);
+		};
+		scene.entityManager.tickQueue.add(player);
 
-		controller = new GAME.playerController.PlayerController(player);
-		controller.getObject().position.z = 200;
-		GAME.input.init(scene, camera, controller);
-		scene.add(controller.getObject());
+		// TODO: Do something about this.
+		//player.position.z = 200;
+		scene.add(player);
 	}
 
 	function init() {
@@ -65,12 +78,19 @@
 		Physijs.scripts.ammo = './ammo.js';
 
 		buildScene();
-
+		GAME.input.init(scene, player);
 
 		renderer = new THREE.WebGLRenderer();
 		renderer.setSize(window.innerWidth, window.innerHeight);
 		renderer.shadowMapEnabled = true;
 		renderer.shadowMapSoft = true;
+
+		stats = new Stats();
+		stats.domElement.style.position = 'absolute';
+		stats.domElement.style.top = 0;
+		//stats.domElement.style.zIndex = 100;
+		//stats.setMode(1);
+		document.body.appendChild(stats.domElement);
 
 		window.addEventListener('resize', function(){
 			camera.aspect = window.innerWidth/window.innerHeight;
@@ -85,27 +105,23 @@
 	var wave = 0;
 
 	function render() {
-		// note: three.js includes requestAnimationFrame shim
 		requestAnimationFrame(render);
 
 		var scaleFactor = Math.max(1, 1+(0.02*Math.sin(wave)));
 		monolith.scale.set(scaleFactor, scaleFactor, scaleFactor);
 		wave += clock.getDelta()*11;
 
-		//controller.isOnObject(controller.getObject().position.y<=10);
-		controller.update(Date.now() - time);
+		scene.tick();
 
-		scene.simulate();
-
+		stats.begin();
 		renderer.render(scene, camera);
-		
-		monolithSound.update(controller.getObject().position);
+		stats.end();
 
-		time = Date.now();
+		monolithSound.update(player.position);
 	}
 
 	this.main = function() {
 		init();
-		render();
+		requestAnimationFrame(render);
 	};
 }).apply(GAME.namespace('core.Main'));

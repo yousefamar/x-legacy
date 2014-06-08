@@ -16,6 +16,8 @@ GAME.namespace = function() {
 	return o;
 };
 
+// TODO: Organise.
+
 GAME.namespace('utils').include = function(filename) {
 	//TODO: Fix asynchronicity.
 	var script = document.createElement('script');
@@ -32,4 +34,26 @@ GAME.utils.getRoot = function() {
 GAME.utils.centerElement = function(element) {
 	element.style.marginLeft = (-parseInt(element.clientWidth)/2)+"px";
 	element.style.marginTop = (-parseInt(element.clientHeight)/2)+"px";
+};
+
+GAME.utils.Queue = function () {
+	this.size = 0;
+};
+
+// TODO: Consider implementing multiple parameter functionality or an array of elements as a parameter.
+GAME.utils.Queue.prototype.add = function (element) {
+	if (element) {
+		this.tail = this.tail ? this.tail.next = {e: element} : this.head = {e: element};
+		this.size++;
+	}
+	return this;
+};
+
+GAME.utils.Queue.prototype.poll = function () {
+	var element = this.head ? this.head.e : undefined;
+	if (element) {
+		this.head = this.head == this.tail ? this.tail = undefined : this.head.next;
+		this.size--;
+	}
+	return element;
 };

@@ -1,5 +1,5 @@
 //TODO: Come up with a proper structure for this.
-GAME.namespace('input').init = function(scene, camera, playerController) {
+GAME.namespace('input').init = function(scene, player) {
 	var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
 	if (havePointerLock) {
@@ -12,9 +12,9 @@ GAME.namespace('input').init = function(scene, camera, playerController) {
 			if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
 				clientForm.style.display = 'none';
 				blocker.style.display = 'none';
-				playerController.enabled = true;
+				player.controller.enabled = true;
 			} else {
-				playerController.enabled = false;
+				player.controller.enabled = false;
 				blocker.style.display = '-webkit-box';
 				blocker.style.display = '-moz-box';
 				blocker.style.display = 'box';
@@ -82,12 +82,13 @@ GAME.namespace('input').init = function(scene, camera, playerController) {
 
 	document.addEventListener('keydown', function (event) {
 		if (event.keyCode == 66) {
-			ball = new Physijs.SphereMesh(new THREE.SphereGeometry(1, 8, 8), new THREE.MeshPhongMaterial({ color: 0x0000FF }));
-			ball.position.copy(playerController.getObject().position);
+			ball = new Physijs.SphereMesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshPhongMaterial({ color: 0x0000FF }));
+			var headWorldPos = player.head.localToWorld(new THREE.Vector3(0, 0, 0));
+			ball.position.copy(headWorldPos);
 			ball.castShadow = true;
 			ball.receiveShadow = true;
 			scene.add(ball);
-			ball.setLinearVelocity(new THREE.Vector3(0, 0, -1).applyMatrix4(playerController.getPitchObject().matrixWorld).sub(playerController.getObject().position).normalize().multiplyScalar(100));
+			ball.setLinearVelocity(player.head.localToWorld(new THREE.Vector3(0, 0, -1)).sub(headWorldPos).normalize().multiplyScalar(20));
 		}
 	}, false);
 };
