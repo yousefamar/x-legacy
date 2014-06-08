@@ -6,7 +6,7 @@ precision highp float;
 //#define PI		3.1415926535897932384626433832795
 //#define PI2		6.2831853071795864769252867665590
 
-//uniform float skyRadius;
+uniform float skyRadius;
 
 //varying vec4 worldCoord;
 varying vec2 skyUV;

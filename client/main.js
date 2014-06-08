@@ -32,7 +32,7 @@
 		sky.add(starfield);
 		//sky.add(new THREE.Mesh(new THREE.SphereGeometry(1000, 128, 64, 0, 2 * Math.PI, 0, Math.PI * 0.5), new THREE.MeshBasicMaterial({ color: 0x00EE00/*0x220044*/, wireframe: true, transparent: true })));
 		sky.tick = function (delta) {
-			uniforms.time.value += 0.01;
+			uniforms.time.value = (uniforms.time.value+0.001)%1.0;
 			game.scene.entityManager.tickQueue.add(this);
 		};
 		game.scene.entityManager.tickQueue.add(sky);

@@ -2,6 +2,9 @@
 precision highp float;
 #endif
 
+#define PI_2	1.5707963267948966192313216916398
+#define PI2		6.2831853071795864769252867665590
+
 //uniform mat4 modelViewMatrix;
 
 uniform float time;
@@ -12,91 +15,43 @@ uniform sampler2D starMap;
 varying vec2 skyUV;
 //varying vec2 angles;
 
-
-//
-// Description : Array and textureless GLSL 2D simplex noise function.
-//      Author : Ian McEwan, Ashima Arts.
-//  Maintainer : ijm
-//     Lastmod : 20110822 (ijm)
-//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
-//               Distributed under the MIT License. See LICENSE file.
-//               https://github.com/ashima/webgl-noise
-// 
-
-vec3 mod289(vec3 x) {
-	return x - floor(x * (1.0 / 289.0)) * 289.0;
+/*
+float lerp(float x0, float x1, float mu) {
+	return x0+(x1-x0)*mu;
 }
+*/
 
-vec2 mod289(vec2 x) {
-	return x - floor(x * (1.0 / 289.0)) * 289.0;
+const vec3 BLACK		= vec3(0.0, 0.0, 0.0);
+const vec3 WHITE		= vec3(1.0, 1.0, 1.0);
+const vec3 SKY_BLUE		= vec3(0.5, 0.8, 1.0);
+const vec3 DARK_BLUE	= vec3(0.0, 0.0, 0.5);
+const vec3 BLACK_BLUE	= vec3(0.0, 0.0, 0.1);
+const vec3 DARK_ORANGE	= vec3(0.75, 0.4, 0.0);
+
+vec4 calcSkyCol() {
+	// TODO: See if blending night with transitions is worth the extra processing power.
+	vec3 col;
+	if (time < 0.1) {
+		col = mix(mix(DARK_ORANGE, DARK_BLUE, skyUV.y), mix(WHITE, SKY_BLUE, skyUV.y), 10.0*time);
+		col *= 0.5 * min(max(-cos(skyUV.x*PI2), 0.0) * cos(skyUV.y*PI_2) + sin(10.0*time*PI_2), 1.0) + 0.5;
+	} else if (time < 0.4) {
+		col = mix(WHITE, SKY_BLUE, skyUV.y);
+	} else if (time < 0.5) {
+		col = mix(mix(WHITE, SKY_BLUE, skyUV.y), mix(DARK_ORANGE, DARK_BLUE, skyUV.y), 10.0*time-4.0);
+		col *= 0.5 * min(max(cos(skyUV.x*PI2), 0.0) * cos(skyUV.y*PI_2) + cos((10.0*time-4.0)*PI_2), 1.0) + 0.5;
+	} else if (time < 0.6) {
+		col = mix(mix(DARK_ORANGE, DARK_BLUE, skyUV.y), mix(BLACK_BLUE, BLACK, skyUV.y), 10.0*time-5.0);
+		col *= 0.5 * min(max(cos(skyUV.x*PI2), 0.0) * cos(skyUV.y*PI_2) + sin((10.0*time-5.0)*PI_2), 1.0) + 0.5;
+	} else if (time < 0.9) {
+		col = mix(BLACK_BLUE, BLACK, skyUV.y);
+	} else {
+		col = mix(mix(BLACK_BLUE, BLACK, skyUV.y), mix(DARK_ORANGE, DARK_BLUE, skyUV.y), 10.0*time-9.0);
+		col *= 0.5 * min(max(-cos(skyUV.x*PI2), 0.0) * cos(skyUV.y*PI_2) + cos((10.0*time-9.0)*PI_2), 1.0) + 0.5;
+	}
+
+	return vec4(col, 1.0);
 }
-
-vec3 permute(vec3 x) {
-	return mod289(((x*34.0)+1.0)*x);
-}
-
-float snoise(vec2 v) {
-	const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0
-						0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
-						-0.577350269189626, // -1.0 + 2.0 * C.x
-						0.024390243902439); // 1.0 / 41.0
-	// First corner
-	vec2 i  = floor(v + dot(v, C.yy) );
-	vec2 x0 = v -   i + dot(i, C.xx);
-
-	// Other corners
-	vec2 i1;
-	//i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0
-	//i1.y = 1.0 - i1.x;
-	i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-	// x0 = x0 - 0.0 + 0.0 * C.xx ;
-	// x1 = x0 - i1 + 1.0 * C.xx ;
-	// x2 = x0 - 1.0 + 2.0 * C.xx ;
-	vec4 x12 = x0.xyxy + C.xxzz;
-	x12.xy -= i1;
-
-	// Permutations
-	i = mod289(i); // Avoid truncation effects in permutation
-	vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
-		+ i.x + vec3(0.0, i1.x, 1.0 ));
-
-	vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
-	m = m*m ;
-	m = m*m ;
-
-	// Gradients: 41 points uniformly over a line, mapped onto a diamond.
-	// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)
-
-	vec3 x = 2.0 * fract(p * C.www) - 1.0;
-	vec3 h = abs(x) - 0.5;
-	vec3 ox = floor(x + 0.5);
-	vec3 a0 = x - ox;
-
-	// Normalise gradients implicitly by scaling m
-	// Approximation of: m *= inversesqrt( a0*a0 + h*h );
-	m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
-
-	// Compute final noise value at P
-	vec3 g;
-	g.x  = a0.x  * x0.x  + h.x  * x0.y;
-	g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-	return 130.0 * dot(m, g);
-}
-
 
 void main() {
-	vec2 skyCoord = vec2(skyUV.x*128.0, skyUV.y*64.0);
-	float noise = abs(snoise(skyCoord));
-
-	if (noise>0.98)
-		gl_FragColor = vec4(noise);
-	else
-		gl_FragColor = vec4(0.0);
-
-	/*
-	if (mod(skyCoord.x*1024.0, 128.0) < 1.0 || mod(skyCoord.y*512.0, 64.0) < 1.0)
-		gl_FragColor = vec4(1.0);
-	else
-		gl_FragColor = vec4(0.0);
-	*/
+	gl_FragColor = calcSkyCol();
 }
