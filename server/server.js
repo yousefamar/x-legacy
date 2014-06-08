@@ -28,7 +28,7 @@ SERVER.utils.Queue.prototype.poll = function () {
 SERVER.io = require('socket.io').listen(9980);
 
 SERVER.io.sockets.on('connection', function (socket) {
-	socket.emit('log', { msg: "You've successfully connected to 4YTech.com on port 9980!", mute: true });
+	socket.emit('log', { msg: 'You\'ve successfully connected to 4YTech.com on port 9980!', mute: true });
 
 	// TODO: Read all of this off of a database.
 	socket.on('join', function (user, state) {
@@ -36,7 +36,7 @@ SERVER.io.sockets.on('connection', function (socket) {
 		socket.set('user', user, function () {
 			socket.set('state', state, function () {
 				// TODO: Move to client.
-				SERVER.io.sockets.emit('log', { msg: user.name+" has joined the game." });
+				SERVER.io.sockets.emit('log', { msg: user.name+' has joined the game.' });
 				socket.broadcast.emit('spawn', user, state);
 				SERVER.io.sockets.clients().forEach(function (otherSocket) {
 					if (otherSocket === socket) return;
@@ -61,7 +61,7 @@ SERVER.io.sockets.on('connection', function (socket) {
 	socket.on('offer', function (sessionDesc) {
 		socket.set('sessionDesc', sessionDesc, function () {
 			socket.get('user', function (err, user) {
-				SERVER.io.sockets.emit('log', { msg: user.name+" is hosting a game." });
+				SERVER.io.sockets.emit('log', { msg: user.name+' is hosting a game.' });
 			});
 		});
 	});
@@ -131,11 +131,6 @@ SERVER.io.sockets.on('connection', function (socket) {
 		});
 	});
 
-	socket.on('message', function(message) {
-		console.log(message);
-		socket.broadcast.emit('message', message);
-	});
-
 	socket.on('echo', function (string) {
 		socket.emit('log', { msg: 'Echo: '+string });
 	});
@@ -163,29 +158,29 @@ SERVER.io.sockets.on('connection', function (socket) {
 		socket.get('user', function (err, user) {
 			socket.broadcast.emit('despawn', user);
 			// TODO: Move to client.
-			socket.broadcast.emit('log', { msg: user.name+" has left the game." });
+			socket.broadcast.emit('log', { msg: user.name+' has left the game.' });
 		});
 	});
 });
 
-/*
-var chat = SERVER.io.of('/chat');
 
-chat.on('connection', function (socket) {
-	socket.emit('a message', {
-		that: 'only',
-		'/chat': 'will get'
+SERVER.sigserv = SERVER.io.of('/sigserv').on('connection', function (socket) {
+	socket.on('message', function(message) {
+		if ('roomToken' in message && 'broadcaster' in message) {
+			socket.room = message;
+			SERVER.sigserv.hosts[message.broadcaster.toString()] = socket;
+		}
+		socket.broadcast.emit('message', message);
 	});
 
-	chat.emit('a message', {
-		everyone: 'in'
-		, '/chat': 'will get'
+	socket.on('disconnect', function() {
+		if ('room' in socket)
+			delete SERVER.sigserv.hosts[socket.room.broadcaster.toString()];
 	});
+
+	for(var hostID in SERVER.sigserv.hosts)
+		socket.emit('message', SERVER.sigserv.hosts[hostID].room);
 });
 
-var news = SERVER.io.of('/news');
-
-news.on('connection', function (socket) {
-	socket.emit('item', { news: 'item' });
-});
-*/
+// TODO: Consider storing rooms rather than hosts.
+SERVER.sigserv.hosts = {};

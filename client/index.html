@@ -19,9 +19,10 @@
 		//GAME.utils.loadScriptAsync('./audio/mespeak/mespeak.js', function(){
 		//	GAME.audio.initMeSpeak();
 		//});
-
 		GAME.utils.loadScriptAsync('./socket.io.min.js', function () {
-			GAME.net.connectToServer(game, 'http://4ytech.com:9980');
+			GAME.utils.loadScriptAsync('./datachannel.js', function () {
+				GAME.net.connectToServer(GAME.game, 'http://4ytech.com:9980');
+			});
 		});
 	}
 	</script>
@@ -81,13 +82,13 @@
 						GAME.core.Main.main();
 						break;
 					case 2:
-						GAME.net.ConnectionP2P.join(username);
+						GAME.net.channel.connect('amar');
 						break;
 					case 3:
-						GAME.net.ConnectionP2P.host();
+						GAME.net.channel.open('amar');
 						break;
 					case 4:
-						GAME.net.ConnectionP2P.send('Hi.');
+						GAME.net.channel.send('Hi.');
 						break;
 					default:
 						alert('Feature not yet implemented.');
