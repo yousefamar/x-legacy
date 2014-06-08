@@ -72,7 +72,7 @@ GAME.namespace('input').init = function(scene, player) {
 		};
 
 		blocker.addEventListener('click', onBlockerClick, false);
-		instructions.addEventListener('click', onBlockerClick, false);
+		//instructions.addEventListener('click', onBlockerClick, false);
 
 	} else {
 

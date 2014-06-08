@@ -1,5 +1,7 @@
 (function() {
-	var player, camera, scene, renderer, stats, monolithSound, monolith, collisionCounter=0;
+	const TICK_INTERVAL_MS = 1000.0/60.0;
+
+	var player, camera, scene, renderer, statsTick, statsRender, monolithSound, monolith, collisionCounter=0;
 	var time = Date.now();
 
 	//TODO: Structure.
@@ -50,7 +52,7 @@
 
 		monolithSound = new GAME.audio.AudioSource(['sounds/376737_Skullbeatz___Bad_Cat_Maste.mp3', 'sounds/376737_Skullbeatz___Bad_Cat_Maste.ogg'], 21, 1);
 		monolithSound.position.copy(monolith.position);
-		monolithSound.play(true);
+		//monolithSound.play(true);
 
 		player = new GAME.player.Player(scene);
 		player.position.y = 1;
@@ -85,12 +87,19 @@
 		renderer.shadowMapEnabled = true;
 		renderer.shadowMapSoft = true;
 
-		stats = new Stats();
-		stats.domElement.style.position = 'absolute';
-		stats.domElement.style.top = 0;
-		//stats.domElement.style.zIndex = 100;
-		//stats.setMode(1);
-		document.body.appendChild(stats.domElement);
+		var overlay = document.getElementById('overlay');
+		statsTick = new Stats();
+		//statsTick.domElement.style.position = 'absolute';
+		//statsTick.domElement.style.top = 0;
+		//statsRender.domElement.style.zIndex = 100;
+		//statsRender.setMode(1);
+		overlay.appendChild(statsTick.domElement);
+		statsRender = new Stats();
+		//statsRender.domElement.style.position = 'absolute';
+		//statsRender.domElement.style.top = 0;
+		//statsRender.domElement.style.zIndex = 100;
+		//statsRender.setMode(1);
+		overlay.appendChild(statsRender.domElement);
 
 		window.addEventListener('resize', function(){
 			camera.aspect = window.innerWidth/window.innerHeight;
@@ -104,24 +113,31 @@
 	var clock = new THREE.Clock();
 	var wave = 0;
 
-	function render() {
-		requestAnimationFrame(render);
+	function tick() {
+		setTimeout(tick, TICK_INTERVAL_MS);
 
 		var scaleFactor = Math.max(1, 1+(0.02*Math.sin(wave)));
 		monolith.scale.set(scaleFactor, scaleFactor, scaleFactor);
 		wave += clock.getDelta()*11;
 
+		statsTick.begin();
 		scene.tick();
-
-		stats.begin();
-		renderer.render(scene, camera);
-		stats.end();
+		statsTick.end();
 
 		monolithSound.update(player.position);
 	}
 
+	function render() {
+		requestAnimationFrame(render);
+
+		statsRender.begin();
+		renderer.render(scene, camera);
+		statsRender.end();
+	}
+
 	this.main = function() {
 		init();
+		setTimeout(tick, TICK_INTERVAL_MS);
 		requestAnimationFrame(render);
 	};
 }).apply(GAME.namespace('core.Main'));

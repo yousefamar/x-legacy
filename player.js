@@ -3,7 +3,7 @@
  * Modified by Paraknight 2013-03-26.
  */
 
-
+// TODO: Release to the general public.
 
 GAME.namespace('player').Player = function (scene) {
 	THREE.Object3D.call(this);
@@ -26,6 +26,7 @@ GAME.player.PlayerController = function (scene, player) {
 			});
 	scene.add(player.collider);
 
+	//player.collider.setDamping(0.99, 1.0);
 	var constraint = new Physijs.DOFConstraint(player.collider, new THREE.Vector3());
 	scene.addConstraint(constraint);
 	// TODO: Remove hardcoding.
@@ -117,7 +118,7 @@ GAME.player.PlayerController = function (scene, player) {
 
 		if (!scope.enabled) return;
 
-		delta *= 0.01;
+		delta *= 0.1;
 
 		if ( moveForward ) velocity.z = -delta;
 		if ( moveBackward ) velocity.z = delta;
@@ -130,11 +131,12 @@ GAME.player.PlayerController = function (scene, player) {
 
 		//player.localToWorld(velocity).sub(player.position).length() < 0.01 ? velocity.set(0,0,0) : velocity.normalize().multiplyScalar(10);
 
-		if (moveForward || moveBackward || moveLeft || moveRight || velocity.y == 10)
-			player.collider.setLinearVelocity(new THREE.Vector3().addVectors(player.collider.getLinearVelocity(), player.localToWorld(velocity).sub(player.position)));
+		//if (moveForward || moveBackward || moveLeft || moveRight || velocity.y == 10) 
 		
-		velocity.set(0,0,0);
+		var horiDamping = 1-delta*0.1;
+		player.collider.setLinearVelocity(new THREE.Vector3().copy(player.collider.getLinearVelocity()).multiply(new THREE.Vector3(horiDamping, 1, horiDamping)).add(player.localToWorld(velocity).sub(player.position)));
 
+		velocity.set(0,0,0);
 	};
 
 };

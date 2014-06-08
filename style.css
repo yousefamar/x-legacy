@@ -28,6 +28,7 @@ div#instructions {
 	font: 12pt Tahoma;
 	color: white;
 	text-shadow: -1px 0 #008888, 0 1px #008888, 1px 0 #008888, 0 -1px #008888;
+	pointer-events: none;
 }
 div#canvas {
 	opacity: 0.5;
@@ -43,9 +44,18 @@ div#blocker {
 }
 div#overlay {
 	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0.5;
+	pointer-events: none;
+}
+form#clientForm {
+	position: absolute;
 	margin-left: 16px;
 	bottom: 0;
 	left: 0;
-	opacity: 0.5;
 	vertical-align: bottom;
+	pointer-events: visiblePainted;
 }
