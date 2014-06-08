@@ -201,7 +201,7 @@ GAME.player.PlayerController = function (scene, player) {
 	this.update = function (delta) {
 		//netTimer += delta;
 		//if (netTimer >= 1) {
-			GAME.net.emit('state', { pos: player.position, rot: player.rotation });
+		//	GAME.net.emit('state', { pos: player.position, rot: player.rotation });
 		//	netTimer = 0;
 		//}
 

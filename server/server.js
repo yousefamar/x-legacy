@@ -58,6 +58,50 @@ SERVER.io.sockets.on('connection', function (socket) {
 		});
 	});
 
+	socket.on('offer', function (sessionDesc) {
+		socket.set('sessionDesc', sessionDesc, function () {
+			socket.get('user', function (err, user) {
+				SERVER.io.sockets.emit('log', { msg: user.name+" is hosting a game." });
+			});
+		});
+	});
+
+	socket.on('answer', function (username, callback) {
+		console.log(username);
+		console.log(callback);
+		var peerFound = false;
+		SERVER.io.sockets.clients().forEach(function (otherSocket) {
+			if (otherSocket === socket) return;
+			otherSocket.get('user', function (err, otherUser) {
+				console.log(otherUser.name + ' == ' + username + '?');
+				if (otherUser.name == username) {
+					console.log('Yes');
+					peerFound = true;
+					// TODO: Consider using properties for everything.
+					otherSocket.peer = socket;
+					socket.peer = otherSocket;
+					otherSocket.get('sessionDesc', function (err, sessionDesc) {
+						// TODO: Handle errors.
+						callback(sessionDesc);
+					});
+				}
+			});
+		});
+		// TODO: Handle all cases.
+		if (!peerFound)
+			socket.emit('log', { msg: username+' is not online.' });
+	});
+
+	socket.on('peerDesc', function (peerDesc) {
+		if (socket.peer)
+			socket.peer.emit('peerDesc', peerDesc);
+	});
+
+	socket.on('candidate', function (candidate) {
+		if (socket.peer)
+			socket.peer.emit('candidate', candidate);
+	});
+
 	socket.on('chat', function (message) {
 		socket.get('user', function (err, user) {
 			socket.broadcast.emit('chat', { username: user.name, msg: message });
@@ -77,7 +121,7 @@ SERVER.io.sockets.on('connection', function (socket) {
 	});
 
 	socket.on('echo', function (string) {
-		socket.emit('log', { msg: "Echo: "+string });
+		socket.emit('log', { msg: 'Echo: '+string });
 	});
 
 	socket.on('pong', function () {

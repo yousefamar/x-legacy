@@ -2,26 +2,26 @@ GAME.namespace('net').connectToServer = function (game, address) {
 	GAME.net.socket = io.connect(address);
 
 	GAME.net.socket.on('connect', function () {
-		GAME.net.socket.emit('join', { name: "Player"+Math.floor(Math.random()*999) }, { pos: game.player.position, rot: game.player.rotation });
+		GAME.net.socket.emit('join', { name: "Player"+Math.floor(Math.random()*999) }, { pos: new THREE.Vector3(), rot: new THREE.Vector3() });//{ pos: game.player.position, rot: game.player.rotation });
 	});
 
 	GAME.net.socket.on('spawn', function (user, state) {
-		game.scene.entityManager.spawnPlayer(user, state);
+		//game.scene.entityManager.spawnPlayer(user, state);
 	});
 
 	GAME.net.socket.on('despawn', function (user) {
-		game.scene.entityManager.despawnPlayer(user);
+		//game.scene.entityManager.despawnPlayer(user);
 	});
 
 	GAME.net.socket.on('state', function (user, state, latOffset) {
-		var player = game.scene.entityManager.players[user.name];
-		if (player)
-			player.onStateReceived(state, latOffset);
+		//var player = game.scene.entityManager.players[user.name];
+		//if (player)
+		//	player.onStateReceived(state, latOffset);
 	});
 
 	GAME.net.socket.on('log', function (packet) {
 		GAME.gui.log(packet.msg);
-		if (packet.mute) return;
+		if (!GAME.audio.enableTTS || packet.mute) return;
 		GAME.audio.loadSpeech(packet.msg, function (audioElement) {
 			var source = new GAME.audio.AudioSourceStreaming(audioElement);
 			// TODO: Follow position while still playing.
@@ -32,6 +32,7 @@ GAME.namespace('net').connectToServer = function (game, address) {
 
 	GAME.net.socket.on('chat', function (packet) {
 		GAME.gui.log(packet.username+": "+packet.msg);
+		if (!GAME.audio.enableTTS) return;
 		GAME.audio.loadSpeech(packet.msg, function (audioElement) {
 			var source = new GAME.audio.AudioSourceStreaming(audioElement);
 			// TODO: Follow position while still playing.
@@ -43,11 +44,22 @@ GAME.namespace('net').connectToServer = function (game, address) {
 	GAME.net.socket.on('ping', function () {
 		GAME.net.socket.emit('pong');
 	});
+
+
+	GAME.net.socket.on('peerDesc', function (peerDesc) {
+		console.log('Answer from connection (local desc) \n' + peerDesc.sdp);
+		GAME.net.ConnectionP2P.connection.setRemoteDescription(new RTCSessionDescription(peerDesc));
+	});
+
+	GAME.net.socket.on('candidate', function (candidate) {
+		GAME.net.ConnectionP2P.connection.addIceCandidate(new RTCIceCandidate({ sdpMLineIndex: candidate.sdpMLineIndex, candidate: candidate.candidate }));
+		console.log('Local ICE candidate: \n' + candidate.candidate);
+	});
 };
 
-GAME.net.emit = function (event, data) {
+GAME.net.emit = function (event, data, callback) {
 	if (GAME.net.socket) {
-		GAME.net.socket.emit(event, data);
+		GAME.net.socket.emit(event, data, callback);
 	} else {
 		//console.log('Emit: '+event);
 		//console.log(data);
@@ -58,8 +70,8 @@ GAME.net.submitFormInput = function (form) {
 	var text = form.input.value.trim();
 	if (!text.length) return;
 	GAME.net.emit('chat', text);
-	GAME.gui.log("You: "+text);
-	form.input.value = "";
+	GAME.gui.log('You: '+text);
+	form.input.value = '';
 	GAME.audio.loadSpeech(text, function (audioElement) {
 		var source = new GAME.audio.AudioSourceStreaming(audioElement);
 		// TODO: Avoid static calls.
@@ -71,29 +83,90 @@ GAME.net.submitFormInput = function (form) {
 
 
 GAME.net.ConnectionP2P = {
-	createPeerConnection: function () {
-		this.servers = { "iceServers": [{ "url": "stun:stun.l.google.com:19302" }] };
-		this.pc1 = new webkitRTCPeerConnection(this.servers, {optional: [{RtpDataChannels: true}]});
+	join: function (username) {
+		var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+		if(RTCPeerConnection == undefined)
+		alert('Your browser is not supported or you have to turn on flags. In chrome'+
+		' you go to chrome://flags and turn on Enable PeerConnection remember '+
+		'to restart chrome');
+		// TODO: Remove.
+		this.servers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
+		this.connection = new RTCPeerConnection(this.servers, {optional: [{RtpDataChannels: true}]});
+		console.log('Created remote peer connection object connection');
 
-		console.log('Connected to peer.');
+		this.connection.onicecandidate = function (event) {
+			console.log('local ice callback');
+			if (event.candidate)
+				GAME.net.emit('candidate', event.candidate);
+		};
+
+		var context = GAME.net.ConnectionP2P;
+		
+		this.connection.ondatachannel = function (event) {
+			console.log('Receive Channel Callback');
+			context.receiveChannel = event.channel;
+			context.receiveChannel.onmessage = function (event) {
+				console.log('Received Message');
+				console.log(event.data);
+			};
+			var onReceiveChannelStateChange = function () {
+				console.log('Receive channel state is: ' + GAME.net.ConnectionP2P.receiveChannel.readyState);
+			};
+			context.receiveChannel.onopen = onReceiveChannelStateChange;
+			context.receiveChannel.onclose = onReceiveChannelStateChange;
+		};
+
+		console.log('Answering '+username+'.');
+		GAME.net.emit('answer', username, function (hostDesc) {
+			console.log('Remote desc from connection \n' + hostDesc.sdp);
+			var context = GAME.net.ConnectionP2P;
+			context.connection.setRemoteDescription(new RTCSessionDescription(hostDesc));
+			context.connection.createAnswer(function (localDesc) {
+				context.connection.setLocalDescription(localDesc);
+				GAME.net.emit('peerDesc', localDesc);
+			});
+		});
+	},
+
+	host: function () {
+		var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+		if(RTCPeerConnection == undefined)
+		alert('Your browser is not supported or you have to turn on flags. In chrome'+
+		' you go to chrome://flags and turn on Enable PeerConnection remember '+
+		'to restart chrome');
+		// TODO: Remove.
+		this.servers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
+		this.connection = new RTCPeerConnection(this.servers, {optional: [{RtpDataChannels: true}]});
+		this.connection.onicecandidate = function (event) {
+			console.log('local ice callback');
+			if (event.candidate)
+				GAME.net.emit('candidate', event.candidate);
+		};
+
+		console.log('Hosting.');
 
 		try {
-			this.sendChannel = this.pc1.createDataChannel('sendDataChannel', {reliable: false});
-			console.log('Created send data channel');
+			this.sendChannel = this.connection.createDataChannel('sendDataChannel', {reliable: false});
+			console.log('Created send data channel.');
 		} catch (e) {
 			console.log('Create Data channel failed with exception: ' + e.message);
 		}
-		this.pc1.onicecandidate = this.iceCallback1;
-		this.sendChannel.onopen = this.onSendChannelStateChange;
-		this.sendChannel.onclose = this.onSendChannelStateChange;
 
-		this.pc2 = new webkitRTCPeerConnection(this.servers, {optional: [{RtpDataChannels: true}]});
-		console.log('Created remote peer connection object pc2');
+		var context = GAME.net.ConnectionP2P;
+		var onSendChannelStateChange = function () {
+			var readyState = context.sendChannel.readyState;
+			console.log('Send channel state is: ' + readyState);
+			if (readyState == 'open') {
+			} else {
+			}
+		}
+		this.sendChannel.onopen = onSendChannelStateChange;
+		this.sendChannel.onclose = onSendChannelStateChange;
 
-		this.pc2.onicecandidate = this.iceCallback2;
-		this.pc2.ondatachannel = this.receiveChannelCallback;
-
-		this.pc1.createOffer(this.gotDescription1);
+		this.connection.createOffer(function (localDesc) {
+			context.connection.setLocalDescription(localDesc);
+			GAME.net.emit('offer', localDesc);
+		});
 	},
 
 	send: function (data) {
@@ -108,67 +181,10 @@ GAME.net.ConnectionP2P = {
 		console.log('Closed data channel with label: ' + this.sendChannel.label);
 		this.receiveChannel.close();
 		console.log('Closed data channel with label: ' + this.receiveChannel.label);
-		this.pc1.close();
-		this.pc2.close();
-		this.pc1 = null;
-		this.pc2 = null;
+		this.connection.close();
+		this.connection.close();
+		this.connection = null;
+		this.connection = null;
 		console.log('Closed peer connections');
-	},
-
-	gotDescription1: function (desc) {
-		var context = GAME.net.ConnectionP2P;
-		context.pc1.setLocalDescription(desc);
-		console.log('Offer from pc1 \n' + desc.sdp);
-		context.pc2.setRemoteDescription(desc);
-		context.pc2.createAnswer(context.gotDescription2);
-	},
-
-	gotDescription2: function (desc) {
-		var context = GAME.net.ConnectionP2P;
-		context.pc2.setLocalDescription(desc);
-		console.log('Answer from pc2 \n' + desc.sdp);
-		context.pc1.setRemoteDescription(desc);
-	},
-
-	iceCallback1: function (event) {
-		console.log('local ice callback');
-		if (event.candidate) {
-			GAME.net.ConnectionP2P.pc2.addIceCandidate(event.candidate);
-			console.log('Local ICE candidate: \n' + event.candidate.candidate);
-		}
-	},
-
-	iceCallback2: function (event) {
-		console.log('local ice callback');
-		if (event.candidate) {
-			GAME.net.ConnectionP2P.pc1.addIceCandidate(event.candidate);
-			console.log('Local ICE candidate: \n' + event.candidate.candidate);
-		}
-	},
-
-	receiveChannelCallback: function (event) {
-		var context = GAME.net.ConnectionP2P;
-		console.log('Receive Channel Callback');
-		context.receiveChannel = event.channel;
-		context.receiveChannel.onmessage = context.onReceiveMessageCallback;
-		context.receiveChannel.onopen = context.onReceiveChannelStateChange;
-		context.receiveChannel.onclose = context.onReceiveChannelStateChange;
-	},
-
-	onReceiveMessageCallback: function (event) {
-		console.log('Received Message');
-		console.log(event.data);
-	},
-
-	onSendChannelStateChange: function () {
-		var readyState = GAME.net.ConnectionP2P.sendChannel.readyState;
-		console.log('Send channel state is: ' + readyState);
-		if (readyState == 'open') {
-		} else {
-		}
-	},
-
-	onReceiveChannelStateChange: function () {
-		console.log('Receive channel state is: ' + GAME.net.ConnectionP2P.receiveChannel.readyState);
 	}
 };

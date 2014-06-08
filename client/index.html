@@ -16,12 +16,12 @@
 	<script src="./main.js"></script>
 	<script>
 	function loadScriptsBG() {
-		GAME.utils.loadScriptAsync('./audio/mespeak/mespeak.js', function(){
-			GAME.audio.initMeSpeak();
-		});
+		//GAME.utils.loadScriptAsync('./audio/mespeak/mespeak.js', function(){
+		//	GAME.audio.initMeSpeak();
+		//});
 
 		GAME.utils.loadScriptAsync('./socket.io.min.js', function () {
-			//GAME.net.connectToServer(game, 'http://4ytech.com:9980');
+			GAME.net.connectToServer(game, 'http://4ytech.com:9980');
 		});
 	}
 	</script>
@@ -73,20 +73,18 @@
 		-->
 		<div id="mainMenu" class="fullscreen">
 			<script>
-				function startGame(mode) {
-					if (mode == 1) {
-						var mainMenu = document.getElementById('mainMenu');
-						mainMenu.parentNode.removeChild(mainMenu);
-					}
+				function startGame(mode, username) {
 					switch(mode) {
 					case 1:
-						setTimeout(GAME.core.Main.main(), 1);
+						var mainMenu = document.getElementById('mainMenu');
+						mainMenu.parentNode.removeChild(mainMenu);
+						GAME.core.Main.main();
 						break;
 					case 2:
-						GAME.net.ConnectionP2P.send('hiii');
+						GAME.net.ConnectionP2P.join('');
 						break;
 					case 3:
-						GAME.net.ConnectionP2P.createPeerConnection();
+						GAME.net.ConnectionP2P.host();
 						break;
 					default:
 						alert('Feature not yet implemented.');
@@ -97,7 +95,7 @@
 				<center>
 					<h1>The Game.</h1><br><br>
 					<button type="button" onclick="startGame(1);">Single Player</button><br>
-					<button type="button" onclick="startGame(2);">Join</button><br>
+					<button type="button" onclick="startGame(2,'');">Join</button><br>
 					<button type="button" onclick="startGame(3);">Host</button><br>
 					<button type="button" onclick="startGame(0);">MMO Thing</button><br>
 					<button type="button" onclick="startGame(0);">Bla</button><br>
