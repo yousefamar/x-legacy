@@ -6,6 +6,7 @@ GAME.namespace('world').Scene = function () {
 
 GAME.world.Scene.prototype = Object.create(Physijs.Scene.prototype);
 
+// TODO: Remove this; it's redundant.
 GAME.world.Scene.prototype.add = function(entity) {
 	//TODO: Make the super class a prototype variable if it's used elsewhere.
 	Physijs.Scene.prototype.add.call(this, entity);

@@ -1,16 +1,18 @@
 (function() {
 	const TICK_INTERVAL_MS = 1000.0/60.0;
 
-	var player, camera, scene, renderer, statsTick, statsRender, monolithSound, monolith, collisionCounter=0;
+	var game = this;
 
-	//TODO: Structure.
+	var camera, renderer, statsTick, statsRender, monolithSound, monolith, collisionCounter=0;
+
+	// TODO: Structure.
 	function buildScene() {
-		scene = new GAME.world.Scene();
+		game.scene = new GAME.world.Scene();
 
-		//scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
+		//game.scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
 
 		var sunLight = new THREE.HemisphereLight(0xFFFFFF, 0x00FF00, 0.1);
-		scene.add(sunLight);
+		game.scene.add(sunLight);
 
 		var light = new THREE.SpotLight(0xFFFFFF, 1, 1000);
 		light.position.set(10, 14, 10);
@@ -24,13 +26,13 @@
 		//light.shadowCameraBottom = -50;
 		light.shadowMapWidth = 1024;
 		light.shadowMapHeight = 1024;
-		scene.add(light);
+		game.scene.add(light);
 
 		var ground = new Physijs.PlaneMesh(new THREE.PlaneGeometry(1000, 1000, 100, 100), new THREE.MeshPhongMaterial({ color: 0x00FF00 }), 0);
 		ground.lookAt(new THREE.Vector3(0,1,0));
 		ground.receiveShadow = false;
 		ground.receiveShadow = true;
-		scene.add(ground);
+		game.scene.add(ground);
 
 		monolith = new Physijs.BoxMesh(new THREE.CubeGeometry(2, 10, 2), new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
 		monolith.position.y = 5;
@@ -47,32 +49,27 @@
 			}
 		});
 		light.target = monolith;
-		scene.add(monolith);
+		game.scene.add(monolith);
 
 		monolithSound = new GAME.audio.AudioSource(['sounds/376737_Skullbeatz___Bad_Cat_Maste.mp3', 'sounds/376737_Skullbeatz___Bad_Cat_Maste.ogg'], 21, 1);
 		monolithSound.position.copy(monolith.position);
 		//monolithSound.play(true);
 
-		var otherPlayer = new GAME.player.Player(scene).addModel();
-		otherPlayer.position.x = -20;
-		scene.add(otherPlayer);
-
-		player = new GAME.player.Player(scene);
-		player.position.y = 1;
-		player.position.z = 20;
-		player.controller = new GAME.player.PlayerController(scene, player);
+		game.player = new GAME.player.Player(game.scene);
+		game.player.position.y = 1;
+		game.player.position.z = 20;
+		game.player.controller = new GAME.player.PlayerController(game.scene, game.player);
 		camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight);//, 1, 10000 );
-		player.head.add(camera);
-		//player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
+		game.player.head.add(camera);
+		//game.player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
 		// TODO: Consider restructuring to make PlayerController superior.
-		player.tick = function (delta) {
-			//player.controller.isOnObject(player.position.y<=10);
-			player.controller.update(delta);
-			scene.entityManager.tickQueue.add(this);
+		game.player.tick = function (delta) {
+			this.controller.update(delta);
+			this.scene.entityManager.tickQueue.add(this);
 		};
-		scene.entityManager.tickQueue.add(player);
+		game.scene.entityManager.tickQueue.add(game.player);
 
-		scene.add(player);
+		game.scene.add(game.player);
 	}
 
 	function init() {
@@ -80,7 +77,7 @@
 		Physijs.scripts.ammo = './ammo.js';
 
 		buildScene();
-		GAME.input.init(scene, player);
+		GAME.input.init(game.scene, game.player);
 
 		renderer = new THREE.WebGLRenderer();
 		renderer.setSize(window.innerWidth, window.innerHeight);
@@ -123,22 +120,23 @@
 		wave += delta*11;
 
 		statsTick.begin();
-		scene.tick(delta);
+		game.scene.tick(delta);
 		statsTick.end();
 
-		monolithSound.update(player.position);
+		monolithSound.update(game.player.position);
 	}
 
 	function render() {
 		requestAnimationFrame(render);
 
 		statsRender.begin();
-		renderer.render(scene, camera);
+		renderer.render(game.scene, camera);
 		statsRender.end();
 	}
 
 	this.main = function() {
 		init();
+		GAME.net.connectToServer('http://4ytech.com:9980', game);
 		setTimeout(tick, TICK_INTERVAL_MS);
 		requestAnimationFrame(render);
 	};

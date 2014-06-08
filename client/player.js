@@ -3,6 +3,8 @@
 GAME.namespace('player').Player = function (scene) {
 	THREE.Object3D.call(this);
 
+	this.scene = scene;
+
 	this.head = new THREE.Object3D();
 	this.head.position.y = 0.75;
 	this.add(this.head);
@@ -14,29 +16,14 @@ GAME.player.Player.prototype.addModel = function() {
 	var player = this;
 
 	var loader = new THREE.JSONLoader();
-	loader.load('models/player/head.js', function (geometry, materials) {
-			//var material = geometry.materials[0];
-			var skinnedMesh = new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
-			//var materials = skinnedMesh.material.materials; 
-			//for (var i = 0, length = materials.length; i < length; i++)
-			//	materials[i].skinning = true;
-			
-			/*
-			THREE.AnimationHandler.add(skinnedMesh.geometry.animation);
-			var animation = new THREE.Animation(skinnedMesh, "walk", THREE.AnimationHandler.CATMULLROM);
-			animation.play();
-
-			skinnedMesh.tick = function (delta) {
-				animation.update(delta);
-				scene.entityManager.tickQueue.add(this);
-			};
-			scene.entityManager.tickQueue.add(skinnedMesh);
-			*/
-
-			player.head.add(skinnedMesh);
+	loader.load('models/player/torso.js', function (geometry, materials) {
+			player.add(new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials)));
 		}
 	);
-
+	loader.load('models/player/head.js', function (geometry, materials) {
+			player.head.add(new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials)));
+		}
+	);
 	return this;
 };
 
@@ -80,7 +67,7 @@ GAME.player.PlayerController = function (scene, player) {
 
 	document.addEventListener('mousemove',
 			function (event) {
-				if ( scope.enabled === false ) return;
+				if (scope.enabled === false) return;
 
 				var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
 				var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
@@ -152,7 +139,16 @@ GAME.player.PlayerController = function (scene, player) {
 		return intersections.length>0 ? intersections[0].distance : -1;
 	}
 
+	var netTimer = 0;
+
 	this.update = function (delta) {
+		netTimer += delta;
+		if (netTimer >= 1) {
+			GAME.net.socket.emit('pos', player.position);
+			netTimer = 0;
+		}
+
+
 		// TODO: Make diagonal movement the same speed as vertical and horizontal by clamping small velocities to 0 and normalizing.
 
 		if (!scope.enabled) return;
