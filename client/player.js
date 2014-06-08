@@ -197,16 +197,24 @@ GAME.player.PlayerController = function (scene, player) {
 	}, false);
 
 	var rayCasterPick = new THREE.Raycaster();
-	rayCasterPick.ray.origin = player.position;
 	document.addEventListener('mousedown', function (event) {
 		if (scope.enabled && player.heldItem && 'onMousedown' in player.heldItem)
 			player.heldItem.onMousedown(event);
 
-		rayCasterPick.ray.direction.copy(player.head.localToWorld(new THREE.Vector3(0, 0, -1)).sub(player.head.localToWorld(new THREE.Vector3())).normalize());
+		var headPos = player.head.localToWorld(new THREE.Vector3());
+		rayCasterPick.ray.origin = headPos;
+		rayCasterPick.ray.direction.copy(player.head.localToWorld(new THREE.Vector3(0, 0, -1)).sub(headPos).normalize());
 		// TODO: Consider testing only a subset of objects for intersetion.
 		var intersections = rayCasterPick.intersectObject(scene, true);
-		if (intersections.length > 0 && intersections[0].distance <= 1.5 && 'onPick' in intersections[0].object)
-			intersections[0].object.onPick(intersections[0]);
+		for (var i = 0, len = intersections.length; i < len; i++) {
+			if (intersections[i].distance > 1.5)
+				break;
+			if (intersections[i].object.visible || 'onPick' in intersections[i].object) {
+				if ('onPick' in intersections[i].object)
+					intersections[i].object.onPick(intersections[i]);
+				break;
+			}
+		}
 	}, false);
 
 	document.addEventListener('mouseup', function (event) {

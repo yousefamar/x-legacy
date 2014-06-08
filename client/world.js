@@ -1,7 +1,16 @@
-GAME.namespace('world').Scene = function () {
+GAME.namespace('world').Scene = function (path, config) {
 	Physijs.Scene.call(this);
+	this.addEventListener('ready', function(){
+		console.log('Physics Engine initialised.');
+	});
 
 	this.entityManager = new GAME.entities.EntityManager(this);
+
+
+
+
+
+
 };
 
 GAME.world.Scene.prototype = Object.create(Physijs.Scene.prototype);
@@ -23,14 +32,9 @@ GAME.world.Scene.prototype.animate = function (delta) {
 	this.entityManager.animate(delta);
 };
 
-
 // TODO: Structure.
 GAME.world.buildSceneIsland = function (game) {
 	game.scene = new GAME.world.Scene();
-
-	game.scene.addEventListener('ready', function(){
-		console.log('Physics Engine initialised.');
-	});
 
 	//game.scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
 
@@ -38,7 +42,7 @@ GAME.world.buildSceneIsland = function (game) {
 	game.player.position.y = 45;
 	game.player.position.z = 20;
 	game.player.controller = new GAME.player.PlayerController(game.scene, game.player);
-	game.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+	game.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
 	game.player.head.add(game.camera);
 	//game.player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
 
@@ -52,9 +56,13 @@ GAME.world.buildSceneIsland = function (game) {
 	// TODO: Should player and children cast shadows?
 	game.scene.add(game.player);
 
+	// TODO: Create proper tool models on which depthTest can be safely disabled.
+	//for (var i = 0, len = GAME.models.tools.axe.mats.length; i < len; i++)
+	//	GAME.models.tools.axe.mats[i].depthTest = false;
+
 	var axeMesh = new THREE.Mesh(GAME.models.tools.axe.geom, new THREE.MeshFaceMaterial(GAME.models.tools.axe.mats));
 	axeMesh.scale.set(0.5,0.5,0.5);
-	axeMesh.position.set(0.5,-game.player.head.position.y,-0.25);
+	axeMesh.position.set(0.0,-game.player.head.position.y,-0.25);
 	axeMesh.rotation.set(0,-0.25*Math.PI,0.1*Math.PI);
 	game.player.head.add(axeMesh);
 	// TODO: Implement correctly.
@@ -286,6 +294,7 @@ GAME.world.buildSceneIsland = function (game) {
 			// NOTE: How the hell do terrain vertices map to world vertices like this?
 			treeCollider.position.set(-vertex.y, vertex.z+2.0, -vertex.x);
 			treeCollider.rotation.set(0, (rand-0.9)*20.0*Math.PI, 0);
+			// TODO: Consider ignoring colliders when picking.
 			var treeMesh = new THREE.Mesh(treeGeom, new THREE.MeshFaceMaterial(treeMats));
 			treeMesh.position.y -= 2.0;
 			treeMesh.castShadow = true;
@@ -428,6 +437,11 @@ GAME.world.buildSceneIsland = function (game) {
 		butterfly.add(wingLPivot);
 		butterfly.add(wingRPivot);
 
+		var hitSphere = new THREE.Mesh(new THREE.SphereGeometry(0.75*wingspan, 8, 4), new THREE.MeshBasicMaterial({ color: 0x00EE00, wireframe: true, transparent: true }));
+		hitSphere.visible = false;
+		hitSphere.onPick = onPickButterfly;
+		butterfly.add(hitSphere);
+
 		butterfly.setWingAngle = setButterflyWingAngle;
 		return butterfly;
 	}
@@ -447,7 +461,6 @@ GAME.world.buildSceneIsland = function (game) {
 		monarch.heading = new THREE.Vector3(0, 0, -1);
 
 		monarch.animate = animateButterfly;
-		monarch.onPick = onPickButterfly;
 		game.scene.entityManager.animQueue.add(monarch);
 		game.scene.add(monarch);
 	}
