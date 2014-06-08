@@ -16,10 +16,6 @@ GAME.namespace = function() {
 	return o;
 };
 
-GAME.namespace('utils').getRoot = function() {
-	return 'https://dl.dropbox.com/u/704818/Escape%20Pod/Games/';
-};
-
 GAME.namespace('utils').include = function(filename) {
 	//TODO: Fix asynchronicity.
 	var script = document.createElement('script');
@@ -27,4 +23,13 @@ GAME.namespace('utils').include = function(filename) {
 	script.src = filename;
 	document.getElementById('includes').appendChild(script);
 	//appendChild(document.createTextNode("<script type=\"text/javascript\" src=\""+filename+"\"></script>"));
+};
+
+GAME.utils.getRoot = function() {
+	return 'https://dl.dropbox.com/u/704818/Escape%20Pod/Games/';
+};
+
+GAME.utils.centerElement = function(element) {
+	element.style.marginLeft = (-parseInt(element.clientWidth)/2)+"px";
+	element.style.marginTop = (-parseInt(element.clientHeight)/2)+"px";
 };

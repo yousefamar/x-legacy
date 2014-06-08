@@ -1,9 +1,97 @@
 <head>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+		}
+		p {
+			font: 12pt Tahoma;
+			color: white;
+			text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+		}
+		textarea {
+			resize: none;
+		}
+		textarea#console {
+			transition: height 1s;
+			-moz-transition: height 1s;
+			-webkit-transition: height 1s;
+			-o-transition: height 1s;
+		}
+		textarea#console.minSize {
+			height: 0em;
+		}
+		textarea#console.maxSize {
+			height: 20em;
+		}
+		div#game {
+			position: relative;
+		}
+		div#instructions {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+		}
+		div#canvas {
+			opacity: 0.5;
+		}
+		div#blocker {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			color: white;
+			background-color: rgba(0,0,0,0.5);
+		}
+		div#overlay {
+			position: absolute;
+			margin-left: 16px;
+			bottom: 0;
+			left: 0;
+			opacity: 0.5;
+			vertical-align: bottom;
+		}
+	</style>
 	<script src="./utils.js"></script>
 	<script src="./three.min.js"></script>
+	<script src="./socket.io.min.js"></script>
+	<script src="./net.js"></script>
+	<script src="./input.js"></script>
+	<script src="./audio.js"></script>
 	<script src="./playercontroller.js"></script>
 	<script src="./main.js"></script>
 </head>
 
 <body onload="GAME.core.Main.main();">
+	<div id="game">
+		<div id="blocker"></div>
+		<div id="overlay">
+			<center>
+				<form id="clientForm" name="clientForm">
+					<textarea readonly name="console" rows="20" cols="80" id="console" class="minSize"
+							onfocus="document.getElementById('console').className = 'maxSize';"
+							onblur="document.getElementById('console').className = 'minSize';">## Console ready. ##&#13;&#10;</textarea><br>
+					<textarea type="text" name="input" rows="1" cols="80"
+							placeholder="Write your message here and press enter to send."
+							onfocus="document.getElementById('console').className = 'maxSize';"
+							onblur="document.getElementById('console').className = 'minSize';"
+							onkeydown="if (event.keyCode == 13) { GAME.net.submitFormInput(this.form); return false;}"></textarea>
+					<!--
+					<input type="button" name="button" value="Send" onClick="submitFormInput(this.form)">
+					-->
+				</form>
+			</center>
+		</div>
+		<div id="instructions">
+			<center>
+				<p>
+					Welcome!<br><br>
+					Controls: Mouse, WASD, Space.<br>
+					Click anywhere to begin!
+				</p>
+			</center>
+		</div>
+		<script>GAME.utils.centerElement(document.getElementById('instructions'));</script>
+	</div>
 </body>

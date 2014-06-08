@@ -1,5 +1,5 @@
 (function() {
-	var player, camera, controller, scene, renderer;
+	var player, camera, controller, scene, renderer, monolithSound, monolith;
 	var time = Date.now();
 
 	function createScene() {
@@ -21,11 +21,16 @@
 		ground.receiveShadow = true;
 		scn.add(ground);
 
-		var cube = new THREE.Mesh(new THREE.CubeGeometry(20, 100, 20), new THREE.MeshPhongMaterial({ color: 0xff0000 }));
-		cube.position.y = 50;
-		cube.castShadow = true;
-		cube.receiveShadow = true;
-		scn.add(cube);
+		monolith = new THREE.Mesh(new THREE.CubeGeometry(20, 100, 20), new THREE.MeshPhongMaterial({ color: 0xff0000 }));
+		monolith.position.y = 50;
+		monolith.castShadow = true;
+		monolith.receiveShadow = true;
+		scn.add(monolith);
+
+		monolithSound = new GAME.audio.AudioSource(['sounds/376737_Skullbeatz___Bad_Cat_Maste.mp3', 'sounds/376737_Skullbeatz___Bad_Cat_Maste.ogg'], 200, 1);
+		monolithSound.position.copy(monolith.position);
+		monolithSound.play();
+
 		return scn;
 	}
 
@@ -38,7 +43,8 @@
 		//camera.rotation.x = 20;
 
 		controller = new GAME.playerController.PlayerController(player);
-		GAME.playerController.initPointerLock(controller);
+		controller.getObject().position.z = 200;
+		GAME.input.initPointerLock(controller);
 
 	//	controller = new THREE.FirstPersonControls(camera);
 
@@ -64,22 +70,27 @@
 			renderer.setSize(window.innerWidth, window.innerHeight);
 		}, false);
 
-		document.body.appendChild(renderer.domElement);
+		document.getElementById('game').insertBefore(renderer.domElement, document.getElementById('overlay'));
 	}
 
 	var clock = new THREE.Clock();
+	var wave = 0;
 
 	function render() {
 		// note: three.js includes requestAnimationFrame shim
 		requestAnimationFrame(render);
 
-		//mesh.rotation.x += 0.01;
-		//mesh.rotation.y += 0.02;
+		var scaleFactor = Math.max(1, 1+(0.02*Math.sin(wave)));
+		monolith.scale.set(scaleFactor, scaleFactor, scaleFactor);
+		wave += clock.getDelta()*11;
 
 		//controller.isOnObject(controller.getObject().position.y<=10);
 		controller.update(Date.now() - time);
 
 		renderer.render(scene, camera);
+		
+		monolithSound.update(controller.getObject().position);
+
 		time = Date.now();
 	}
 
