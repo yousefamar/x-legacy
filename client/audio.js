@@ -141,7 +141,7 @@ GAME.audio.enableTTS = false;
 GAME.audio.initMeSpeak = function () {
 	meSpeak.loadConfig('audio/mespeak/mespeak_config.json');
 	meSpeak.loadVoice('audio/mespeak/voices/en/en.json');
-	//GAME.audio.enableTTS = true;
+	GAME.audio.enableTTS = true;
 	GAME.audio.loadSpeech('', function (audioElement) {});
 	/*
 	meSpeak.speak('hello world', { option1: value1, option2: value2 .. });

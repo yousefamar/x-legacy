@@ -1,4 +1,9 @@
 /* TODO: Consider building some of these on the fly. */
+/*
+* {
+	box-sizing: border-box;
+}
+*/
 body {
 	margin: 0;
 	padding: 0;
@@ -17,6 +22,14 @@ textarea {
 	font: 8pt Tahoma;
 	background-color: rgba(1,1,1,0.5);
 	color: white;
+}
+div {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 div.fadeIn {
 	opacity: 1;
@@ -85,7 +98,6 @@ div#overlay {
 	left: 0;
 	width: 100%;
 	height: 100%;
-	opacity: 0.5;
 	pointer-events: none;
 }
 div#passiveChat {
@@ -105,6 +117,25 @@ form#clientForm {
 	margin-left: 16px;
 	bottom: 0;
 	left: 0;
+	opacity: 0.5;
 	vertical-align: bottom;
+	pointer-events: visiblePainted;
+}
+div#overlay div.window {
+	position: absolute;
+	background: gray;
+	color: white;
+	border: 6px outset #646464;
+	pointer-events: visiblePainted;
+}
+div#overlay div.window div.itemSlot {
+	display: inline-block;
+	position: absolute;
+	width: 40px;
+	height: 40px;
+	/*margin: 5px;*/
+	background: rgb(180, 180, 180);
+	color: white;
+	border: 2px inset #646464;
 	pointer-events: visiblePainted;
 }

@@ -11,15 +11,16 @@
 	<script src="./shaders.js"></script>
 	<script src="./input.js"></script>
 	<script src="./audio.js"></script>
+	<script src="./models.js"></script>
 	<script src="./world.js"></script>
 	<script src="./entities.js"></script>
 	<script src="./player.js"></script>
 	<script src="./main.js"></script>
 	<script>
 	function loadScriptsLazy() {
-		//GAME.utils.loadScriptAsync('./audio/mespeak/mespeak.js', function(){
-		//	GAME.audio.initMeSpeak();
-		//});
+		GAME.utils.loadScriptAsync('./audio/mespeak/mespeak.js', function(){
+			GAME.audio.initMeSpeak();
+		});
 		//GAME.utils.loadScriptAsync('./socket.io.min.js', function () {
 		//	GAME.utils.loadScriptAsync('./datachannel.js', function () {
 				//GAME.net.connectToServer(GAME.game, 'http://4ytech.com:9980');
@@ -47,13 +48,21 @@
 		</div>
 		<div id="instructions">
 			<p>
-				<center>Welcome!</center><br><br>
+				<center><h1>Loading...</h1></center><br><br>
 				Controls:<br>
 				<ul>
 					<li>Mouse = Look</li>
+					<li>Click = Use item</li>
 					<li>WASD = Move</li>
 					<li>Space = Jump</li>
+					<li>I = Open inventory</li>
 					<li>B = Shoot ball (Hold for rapid-fire)</li>
+				</ul><br>
+				Chat Commands:<br>
+				<ul>
+					<li>/time [0.0-1.0) = Set time</li>
+					<li>/join [Host name] = Join game</li>
+					<li>/host = Host game</li>
 				</ul><br>
 				<center>
 					Shoot the radio to turn it on or off.<br>

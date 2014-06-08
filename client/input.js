@@ -41,6 +41,9 @@ GAME.namespace('input').init = function(scene, player) {
 		var onBlockerClick = function (event) {
 			instructions.style.display = 'none';
 			blocker.style.backgroundColor = 'rgba(0,0,0,0)';
+			document.getElementById('playerWin').style.display = 'none';
+			clientForm.input.blur();
+
 
 			// Ask the browser to lock the pointer
 			element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
@@ -75,11 +78,13 @@ GAME.namespace('input').init = function(scene, player) {
 		blocker.addEventListener('click', onBlockerClick, false);
 		//instructions.addEventListener('click', onBlockerClick, false);
 
+		var blurKeys = [13, 73];
+
 		var escDown = false;
 
-		document.addEventListener('keydown', function (event) {
+		document.body.addEventListener('keydown', function (event) {
 			if (player.controller.enabled) {
-				if (event.keyCode == 13) {
+				if (blurKeys.indexOf(event.keyCode) >= 0) {
 					document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock;
 					document.exitPointerLock();
 				}
@@ -93,11 +98,16 @@ GAME.namespace('input').init = function(scene, player) {
 				clientForm.input.focus();
 				// FIXME: A stray '\n' makes its way into the input box when focusing with Enter.
 			}
+
+			if (document.activeElement == clientForm.input) return;
+
+			if (event.keyCode == 73) {
+				document.getElementById('playerWin').style.display = '';
+			}
 		}, false);
 
-		document.addEventListener('keyup', function (event) {
+		document.body.addEventListener('keyup', function (event) {
 			if (escDown && event.keyCode == 27) {
-				clientForm.input.blur();
 				onBlockerClick();
 				escDown = false;
 			}
@@ -107,4 +117,29 @@ GAME.namespace('input').init = function(scene, player) {
 		//instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
 
 	}
+
+
+	// TODO: Consider moving this somewhere else like GAME.gui.
+	var overlay = document.getElementById('overlay');
+	var dragging = null, offX = 0, offY = 0;
+
+	overlay.addEventListener('mousedown', function (event) {
+		if (event.target.className.indexOf('draggable') >= 0) {
+			dragging = event.target;
+			offX = event.offsetX;
+			offY = event.offsetY;
+		}
+	});
+
+	document.addEventListener('mouseup', function (event) {
+		dragging = null;
+	});
+
+	document.body.addEventListener('mousemove', function (event) {
+		if (dragging) {
+			// FIXME: Constrain drag to browser window size.
+			dragging.style.top = (event.pageY-offY)+'px';
+			dragging.style.left = (event.pageX-offX)+'px';
+		}
+	});
 };

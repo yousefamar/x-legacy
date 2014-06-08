@@ -26,6 +26,90 @@ GAME.namespace('gui').init = function() {
 	};
 	clientForm.console.addEventListener(transitionEnd, onTransitionEnd, false);
 	*/
+
+
+	function allowDrop (event) {
+		event.preventDefault();
+	}
+
+	function drag (event) {
+		event.dataTransfer.setData('Text',event.target.id);
+	}
+
+	function drop (event) {
+		event.preventDefault();
+		var element = document.getElementById(event.dataTransfer.getData('Text'));
+		if (event.target != element) {
+			if (element.parentNode.id == 'invSlot5')
+				GAME.game.player.setHeldItem(null);
+			event.target.appendChild(element);
+			if (event.target.id == 'invSlot5')
+				GAME.game.player.setHeldItem(element.id);
+		}
+	}
+
+	function createWindow (x, y, w, h) {
+		var win = document.createElement('div');
+		win.className = 'window draggable';
+		win.style.display = 'none';
+		win.style.top = y+'px';
+		win.style.left = x+'px';
+		win.style.width = w+'px';
+		win.style.height = h+'px';
+		overlay.appendChild(win);
+		return win;
+	}
+
+	var playerWin = createWindow(((window.innerWidth-432)/2)|0,((window.innerHeight-432)/2)|0,432,432);
+	playerWin.id = 'playerWin';
+	var equip = document.createElement('div');
+
+	for (var i = 0; i < 4; i++) {
+		var slot = document.createElement('div');
+		slot.id = 'invSlot'+i;
+		slot.className = 'itemSlot';
+		slot.style.top = (27+i*54)+'px';
+		slot.style.left = '20%';
+		slot.ondrop = drop;
+		slot.ondragover = allowDrop;
+		equip.appendChild(slot);
+	}
+
+	for (var i = 0; i < 4; i++) {
+		var slot = document.createElement('div');
+		slot.id = 'invSlot'+(4+i);
+		slot.className = 'itemSlot';
+		slot.style.top = (27+i*54)+'px';
+		slot.style.right = '20%';
+		slot.ondrop = drop;
+		slot.ondragover = allowDrop;
+		equip.appendChild(slot);
+	}
+
+	var inv = document.createElement('div');
+	inv.style.position = 'absolute';
+	inv.style.bottom = 0;
+
+	for (var i = 0; i < 24; i++) {
+		var slot = document.createElement('div');
+		slot.id = 'invSlot'+(8+i);
+		slot.className = 'itemSlot';
+		slot.style.top = (-149+((i*0.125)|0)*50)+'px';
+		slot.style.left = (5+(i%8)*54)+'px';
+		slot.ondrop = drop;
+		slot.ondragover = allowDrop;
+		inv.appendChild(slot);
+	}
+
+	playerWin.appendChild(equip);
+	playerWin.appendChild(inv);
+
+	var axeItem = document.createElement('img');
+	axeItem.id = 'axeItem';
+	axeItem.src = 'http://maidenwars.com/icons/icon_mainhand_axe_1.png';
+	axeItem.draggable = true;
+	axeItem.ondragstart = drag;
+	document.getElementById('invSlot5').appendChild(axeItem);
 };
 
 GAME.gui.setChatFocus = function (flag, scope) {
@@ -93,4 +177,4 @@ GAME.gui.submitConsoleInput = function (form) {
 			source.play();
 		});
 	}
-};
+};		

@@ -45,8 +45,8 @@ GAME.utils.xhrSyncGet = function (url) {
 };
 
 GAME.utils.centerElement = function(element) {
-	element.style.marginLeft = (-parseInt(element.clientWidth)/2)+"px";
-	element.style.marginTop = (-parseInt(element.clientHeight)/2)+"px";
+	element.style.marginLeft = (-parseInt(element.clientWidth)/2)+'px';
+	element.style.marginTop = (-parseInt(element.clientHeight)/2)+'px';
 };
 
 

@@ -39,7 +39,7 @@ GAME.player.Player.prototype.addModel = function() {
 	return this;
 };
 
-GAME.player.Player.prototype.onStateReceived = function(state) {
+GAME.player.Player.prototype.onStateReceived = function (state) {
 	/*
 	state.timeStamp = new Date().getTime();
 	this.states.add(state);
@@ -49,6 +49,16 @@ GAME.player.Player.prototype.onStateReceived = function(state) {
 	*/
 
 	this.serverState = state;
+};
+
+GAME.player.Player.prototype.setHeldItem = function (itemName) {
+	if (!itemName) {
+		this.heldItem = null;
+		this.head.remove(this.axeMesh);
+	} else if (itemName == 'axeItem') {
+		this.heldItem = this.axeMesh;
+		this.head.add(this.axeMesh);
+	}
 };
 
 GAME.player.Player.prototype.tick = function() {
@@ -193,7 +203,7 @@ GAME.player.PlayerController = function (scene, player) {
 	var rayCasterPick = new THREE.Raycaster();
 	rayCasterPick.ray.origin = player.position;
 	document.addEventListener('mousedown', function (event) {
-		if (scope.enabled && 'heldItem' in player && 'onMousedown' in player.heldItem)
+		if (scope.enabled && player.heldItem && 'onMousedown' in player.heldItem)
 			player.heldItem.onMousedown(event);
 
 		rayCasterPick.ray.direction.copy(player.head.localToWorld(new THREE.Vector3(0, 0, -1)).sub(player.head.localToWorld(new THREE.Vector3())).normalize());
@@ -204,7 +214,7 @@ GAME.player.PlayerController = function (scene, player) {
 	}, false);
 
 	document.addEventListener('mouseup', function (event) {
-		if (scope.enabled && 'heldItem' in player && 'onMouseup' in player.heldItem)
+		if (scope.enabled && player.heldItem && 'onMouseup' in player.heldItem)
 			player.heldItem.onMouseup(event);
 	}, false);
 
@@ -246,7 +256,7 @@ GAME.player.PlayerController = function (scene, player) {
 
 		//if (moveForward || moveBackward || moveLeft || moveRight || velocity.y == 10) 
 		
-		var horiDamping = 1-delta*0.1;
+		var horiDamping = 1-delta*0.2;
 		player.collider.setLinearVelocity(new THREE.Vector3().copy(player.collider.getLinearVelocity()).multiply(new THREE.Vector3(horiDamping, 1, horiDamping)).add(player.localToWorld(velocity).sub(player.position)));
 
 		velocity.set(0,0,0);
