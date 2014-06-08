@@ -5,18 +5,40 @@ body {
 }
 textarea {
 	resize: none;
+	/*overflow: hidden;*/
+	background-color: rgba(1,1,1,0.5);
+	color: white;
+}
+div.fadeIn {
+	opacity: 1;
+}
+div.fadeOut {
+	opacity: 0;
+}
+div.fadeIn, div.fadeOut {
+	transition: opacity 1s;
+	-moz-transition: opacity 1s;
+	-webkit-transition: opacity 1s;
+	-o-transition: opacity 1s;
+}
+textarea#input {
+	overflow: hidden;
 }
 textarea#console {
-	transition: height 1s;
-	-moz-transition: height 1s;
-	-webkit-transition: height 1s;
-	-o-transition: height 1s;
+	transition: height 1s, opacity 1s;
+	-moz-transition: height 1s, opacity 1s;
+	-webkit-transition: height 1s, opacity 1s;
+	-o-transition: height 1s, opacity 1s;
 }
 textarea#console.minSize {
 	height: 0em;
+	opacity: 0;
+	overflow: hidden;
 }
 textarea#console.maxSize {
 	height: 20em;
+	opacity: 1;
+	overflow: auto;
 }
 div#game {
 	position: relative;
@@ -49,6 +71,18 @@ div#overlay {
 	width: 100%;
 	height: 100%;
 	opacity: 0.5;
+	pointer-events: none;
+}
+div#passiveChat {
+	position: absolute;
+	margin-left: 22px;
+	margin-bottom: 40px;
+	bottom: 0;
+	left: 0;
+	vertical-align: bottom;
+	color: white;
+	font-size: 8pt;
+	text-shadow: -1px 0 #000000, 0 1px #000000, 1px 0 #000000, 0 -1px #000000;
 	pointer-events: none;
 }
 form#clientForm {

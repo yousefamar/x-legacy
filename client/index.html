@@ -1,13 +1,14 @@
 <head>
 	<link rel="stylesheet" type="text/css" href="./style.css"></link>
-	<script src="./utils.js"></script>
 	<script src="./three.min.js"></script>
 	<script src="./stats.min.js"></script>
 	<script src="./socket.io.min.js"></script>
+	<script src="./physics/physi.js"></script>
+	<script src="./utils.js"></script>
 	<script src="./net.js"></script>
+	<script src="./gui.js"></script>
 	<script src="./input.js"></script>
 	<script src="./audio.js"></script>
-	<script src="./physics/physi.js"></script>
 	<script src="./world.js"></script>
 	<script src="./entities.js"></script>
 	<script src="./player.js"></script>
@@ -18,21 +19,20 @@
 	<div id="game">
 		<div id="blocker"></div>
 		<div id="overlay">
-			<center>
-				<form id="clientForm" name="clientForm">
-					<textarea readonly name="console" rows="20" cols="80" id="console" class="minSize"
-							onfocus="document.getElementById('console').className = 'maxSize';"
-							onblur="document.getElementById('console').className = 'minSize';">## Console ready. ##&#13;&#10;</textarea><br>
-					<textarea type="text" name="input" rows="1" cols="80"
-							placeholder="Write your message here and press enter to send."
-							onfocus="document.getElementById('console').className = 'maxSize';"
-							onblur="document.getElementById('console').className = 'minSize';"
-							onkeydown="if (event.keyCode == 13) { GAME.net.submitFormInput(this.form); return false;}"></textarea>
-					<!--
-					<input type="button" name="button" value="Send" onClick="submitFormInput(this.form)">
-					-->
-				</form>
-			</center>
+			<div id="passiveChat" class="fadeIn"></div>
+			<form id="clientForm" name="clientForm">
+				<textarea readonly name="console" rows="20" cols="80" id="console" class="minSize fadeOut"
+						onfocus="GAME.gui.setChatFocus(true, this);"
+						onblur="GAME.gui.setChatFocus(false, this);">## Console ready. ##&#13;&#10;</textarea><br>
+				<textarea type="text" name="input" rows="1" cols="80" id="input"
+						placeholder="(Press Enter to Chat)"
+						onfocus="GAME.gui.setChatFocus(true, this);"
+						onblur="GAME.gui.setChatFocus(false, this);"
+						onkeydown="if (event.keyCode == 13) { GAME.net.submitFormInput(this.form); return false;}"></textarea>
+				<!--
+				<input type="button" name="button" value="Send" onClick="submitFormInput(this.form)">
+				-->
+			</form>
 		</div>
 		<div id="instructions">
 			<p>

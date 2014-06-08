@@ -1,4 +1,5 @@
 'use strict';
+// TODO: Consider refactoring "GAME" to "CLIENT" for consistency.
 var GAME = (typeof GAME == 'undefined' || !GAME)?{}:GAME;
 
 GAME.namespace = function() {

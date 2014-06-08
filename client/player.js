@@ -8,23 +8,73 @@ GAME.namespace('player').Player = function (scene) {
 	this.head = new THREE.Object3D();
 	this.head.position.y = 0.75;
 	this.add(this.head);
+
+	/*
+	// TODO: Consider refactoring "state" to "transform" both client and server-side.
+	this.states = new GAME.utils.Queue();
+	*/
+
+	this.despawned = false;
 };
 
 GAME.player.Player.prototype = Object.create(THREE.Object3D.prototype);
 
+// TODO: Restructure.
 GAME.player.Player.prototype.addModel = function() {
 	var player = this;
 
 	var loader = new THREE.JSONLoader();
 	loader.load('models/player/torso.js', function (geometry, materials) {
-			player.add(new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials)));
+			var torsoMesh = new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
+			torsoMesh.lookAt(new THREE.Vector3(0,0,-1));
+			player.add(torsoMesh);
 		}
 	);
 	loader.load('models/player/head.js', function (geometry, materials) {
-			player.head.add(new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials)));
+			var headMesh = new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
+			headMesh.lookAt(new THREE.Vector3(0,0,-1));
+			player.head.add(headMesh);
 		}
 	);
 	return this;
+};
+
+GAME.player.Player.prototype.onStateReceived = function(state, latOffset) {
+	/*
+	state.timeStamp = new Date().getTime();
+	this.states.add(state);
+	// TODO: Make state queue size limit a constant.
+	if (this.states.size > 20)
+		this.states.poll();
+	*/
+
+	this.serverState = state;
+};
+
+GAME.player.Player.prototype.tick = function() {
+	if (this.despawned) return;
+
+	/* Linear interpolation/extrapolation between current and previous state. */
+
+	var linearVelocity = new THREE.Vector3().copy(this.serverState.pos).sub(this.position);
+	var dist = linearVelocity.length();
+	if (dist < 0.01) {
+		this.position.copy(this.serverState.pos);
+	} else if (dist < 1) {
+		this.position.add(linearVelocity.multiplyScalar(0.1));
+	} else {
+		this.position.add(linearVelocity.normalize().multiplyScalar(0.1));
+	}
+	
+	var angularVelocity = new THREE.Vector3().copy(this.serverState.rot).sub(this.rotation);
+	dist = angularVelocity.length();
+	if (dist < 0.01) {
+		this.rotation.copy(this.serverState.rot);
+	} else {
+		this.rotation.add(angularVelocity.multiplyScalar(0.1));
+	}
+
+	this.scene.entityManager.tickQueue.add(this);
 };
 
 
@@ -35,11 +85,18 @@ GAME.player.Player.prototype.addModel = function() {
 
 // TODO: Restructure and use only Object3Ds.
 GAME.player.PlayerController = function (scene, player) {
-	player.collider = new Physijs.CapsuleMesh(new THREE.CylinderGeometry(0.3, 0.3, 1.8), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
+	player.collider = new Physijs.CapsuleMesh(new THREE.CylinderGeometry(0.3, 0.3, 1.8), new THREE.MeshBasicMaterial());
+	player.collider.visible = false;
 	player.collider.position = player.position;
+	var landingSound;
+	GAME.audio.load(['audio/landing.ogg'], function(source){landingSound = source;});
 	player.collider.addEventListener('collision',
 			function(other_object, relative_velocity, relative_rotation) {
-				//console.log(relative_velocity);
+				//console.log(relative_velocity);				
+				if (landingSound && other_object instanceof Physijs.PlaneMesh) {
+					landingSound.setPosition(new THREE.Vector3().addVectors(player.position, new THREE.Vector3(0, -1.65, 0)));
+					landingSound.play(false);
+				}
 			});
 	scene.add(player.collider);
 
@@ -51,8 +108,8 @@ GAME.player.PlayerController = function (scene, player) {
 	//constraint.setLinearUpperLimit(new THREE.Vector3(500, 900, 300));
 	constraint.setLinearLowerLimit(new THREE.Vector3(-Infinity, -Infinity, -Infinity));
 	constraint.setLinearUpperLimit(new THREE.Vector3(Infinity, Infinity, Infinity));
-	constraint.setAngularLowerLimit(new THREE.Vector3(0, 0, 0));
-	constraint.setAngularUpperLimit(new THREE.Vector3(0, 0, 0));
+	constraint.setAngularLowerLimit(new THREE.Vector3());
+	constraint.setAngularUpperLimit(new THREE.Vector3());
 
 	var scope = this;
 
@@ -98,7 +155,7 @@ GAME.player.PlayerController = function (scene, player) {
 						break;
 					case 32: // space
 						// TODO: Make player height an attribute of Player.
-						if (distToGround() < 0.9001) velocity.y = 10;
+						if (distToGround() < 0.9001) velocity.y = 4;
 						break;
 				}
 			}, false);
@@ -139,14 +196,14 @@ GAME.player.PlayerController = function (scene, player) {
 		return intersections.length>0 ? intersections[0].distance : -1;
 	}
 
-	var netTimer = 0;
+	//var netTimer = 0;
 
 	this.update = function (delta) {
-		netTimer += delta;
-		if (netTimer >= 1) {
-			GAME.net.socket.emit('pos', player.position);
-			netTimer = 0;
-		}
+		//netTimer += delta;
+		//if (netTimer >= 1) {
+			GAME.net.socket.emit('state', { pos: player.position, rot: player.rotation });
+		//	netTimer = 0;
+		//}
 
 
 		// TODO: Make diagonal movement the same speed as vertical and horizontal by clamping small velocities to 0 and normalizing.
