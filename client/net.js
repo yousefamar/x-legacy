@@ -45,10 +45,19 @@ GAME.namespace('net').connectToServer = function (game, address) {
 	});
 };
 
+GAME.net.emit = function (event, data) {
+	if (GAME.net.socket) {
+		GAME.net.socket.emit(event, data);
+	} else {
+		//console.log('Emit: '+event);
+		//console.log(data);
+	}
+};
+
 GAME.net.submitFormInput = function (form) {
 	var text = form.input.value.trim();
 	if (!text.length) return;
-	GAME.net.socket.emit('chat', text);
+	GAME.net.emit('chat', text);
 	GAME.gui.log("You: "+text);
 	form.input.value = "";
 	GAME.audio.loadSpeech(text, function (audioElement) {

@@ -12,27 +12,71 @@
 
 		//game.scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
 
+		game.player = new GAME.player.Player(game.scene);
+		game.player.position.y = 60;
+		game.player.position.z = 20;
+		game.player.controller = new GAME.player.PlayerController(game.scene, game.player);
+		game.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+		game.player.head.add(game.camera);
+		//game.player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
+		// TODO: Consider restructuring to make PlayerController superior.
+		game.player.tick = function (delta) {
+			this.controller.update(delta);
+			this.scene.entityManager.tickQueue.add(this);
+		};
+		game.scene.entityManager.tickQueue.add(game.player);
+
+		game.scene.add(game.player);
+
+
+
 		var sky = new THREE.Object3D();
+		sky.position = game.player.position;
 
 		//starCoords = [new THREE.Vector2(10, 10), new THREE.Vector2(20, 20)];
 		//starSizes = [1.0, 1.0];
 
-		var uniforms = {
-			skyRadius: { type: 'f', value: 1000.0 },
-			time: { type: 'f', value: 0.0 },
-			//lookVec: { type: 'v3', value: new THREE.Vector3(0, 0, -1) }
-			//starCoords: { type: "v2v", value: starCoords },
-			//starSizes: { type: "fv1", value: starSizes }
-			//starMap: { type: "t", value: THREE.ImageUtils.loadTexture( "./images/starmap.png" ) }
-		};
-		var starfieldMat = new THREE.ShaderMaterial({ uniforms: uniforms, vertexShader: GAME.utils.xhrSyncGet('./shaders/starfield.vert'), fragmentShader: GAME.utils.xhrSyncGet('./shaders/starfield.frag') });
-		starfieldMat.side = THREE.BackSide;
-		var starfield = new THREE.Mesh(new THREE.SphereGeometry(1000, 128, 64, 0, 2 * Math.PI, 0, Math.PI * 0.5), starfieldMat);
-		//starfield.rotation.y = -0.5 * Math.PI;
-		sky.add(starfield);
-		//sky.add(new THREE.Mesh(new THREE.SphereGeometry(1000, 128, 64, 0, 2 * Math.PI, 0, Math.PI * 0.5), new THREE.MeshBasicMaterial({ color: 0x00EE00/*0x220044*/, wireframe: true, transparent: true })));
+		var time = 0.0;
+
+		var skyMat = new THREE.ShaderMaterial(GAME.shaders.sky);
+		skyMat.side = THREE.BackSide;
+		var skyMesh = new THREE.Mesh(new THREE.SphereGeometry(1000, 8, 4, 0, 2 * Math.PI, 0, Math.PI * 0.5), skyMat);
+		//skyMesh.rotation.y = -0.5 * Math.PI;
+		sky.add(skyMesh);
+		//sky.add(new THREE.Mesh(new THREE.SphereGeometry(1000, 8, 4, 0, 2 * Math.PI, 0, Math.PI * 0.5), new THREE.MeshBasicMaterial({ color: 0x00EE00/*0x220044*/, wireframe: true, transparent: true })));
+		
+		var sunHemiLight = new THREE.HemisphereLight(0xFFFFFF, 0xFFFFFF, 0.05);
+		//hemiLight.color.setHSL(0.6, 1, 0.6);
+		//hemiLight.groundColor.setHSL(0.095, 1, 0.75);
+		sunHemiLight.position.set(0.0, 1000.0, 0.0);
+		sky.add(sunHemiLight);
+		var sunDirLight = new THREE.DirectionalLight(0xFFFFFF, 0.0);
+		game.player._sun = new THREE.Object3D();
+		sunDirLight.position = game.player._sun.position;
+		sunDirLight.position.set(20.0, 0.0, 0.0);
+		sunDirLight.castShadow = true;
+		sunDirLight.shadowMapWidth = 2048;
+		sunDirLight.shadowMapHeight = 2048;
+		sunDirLight.shadowCameraRight = 20;
+		sunDirLight.shadowCameraLeft = -20;
+		sunDirLight.shadowCameraTop = 20;
+		sunDirLight.shadowCameraBottom = -20;
+		sunDirLight.shadowCameraNear = 1;
+		sunDirLight.shadowCameraFar = 40;
+		//sunDirLight.shadowBias = 0.001;
+		//sunDirLight.shadowCameraVisible = true;
+		sunDirLight.target = game.player;
+		sky.add(sunDirLight);
+
 		sky.tick = function (delta) {
-			uniforms.time.value = (uniforms.time.value+0.001)%1.0;
+			time = (time+0.001)%1.0;
+			GAME.shaders.sky.uniforms.time.value = time;
+			var height = Math.sin(time*2.0*Math.PI);
+			game.player._sun.position.set(20.0*Math.cos(time*2.0*Math.PI), 20.0*height, 0.0);
+			sunDirLight.intensity = 0.5*height;
+			sunDirLight.shadowDarkness = 0.5*sunDirLight.intensity;
+			//sunHemiLight.intensity = 0.5*height;
+			sunHemiLight.groundColor.setHSL(0.7, 1.0, 0.25+(0.375*(height+1.0)));
 			game.scene.entityManager.tickQueue.add(this);
 		};
 		game.scene.entityManager.tickQueue.add(sky);
@@ -40,31 +84,53 @@
 
 		//game.scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0025);
 
-		var sunLight = new THREE.HemisphereLight(0xFFFFFF, 0x00FF00, 0.1);
-		game.scene.add(sunLight);
 
-		var light = new THREE.SpotLight(0xFFFFFF, 1, 1000);
-		light.position.set(10, 14, 10);
-		light.castShadow = true;
-		//light.shadowCameraVisible = true;
-		light.shadowCameraNear = 5;
-		light.shadowCameraFar = 500;
-		//light.shadowCameraRight = 50;
-		//light.shadowCameraLeft = -50;
-		//light.shadowCameraTop = 50;
-		//light.shadowCameraBottom = -50;
-		light.shadowMapWidth = 1024;
-		light.shadowMapHeight = 1024;
-		game.scene.add(light);
+		var spotLight = new THREE.SpotLight(0xFFFFFF, 1, 1000);
+		spotLight.position.set(10, 64, 10);
+		spotLight.castShadow = true;
+		//spotLight.shadowCameraVisible = true;
+		spotLight.shadowCameraNear = 5;
+		spotLight.shadowCameraFar = 500;
+		//spotLight.shadowCameraRight = 50;
+		//spotLight.shadowCameraLeft = -50;
+		//spotLight.shadowCameraTop = 50;
+		//spotLight.shadowCameraBottom = -50;
+		spotLight.shadowMapWidth = 1024;
+		spotLight.shadowMapHeight = 1024;
+		spotLight.tick = function (delta) {
+			this.intensity = 1.0-(0.5*(Math.sin(time*2.0*Math.PI)+1.0));
+			this.shadowDarkness = 0.5*this.intensity;
+			game.scene.entityManager.tickQueue.add(this);
+		};
+		game.scene.entityManager.tickQueue.add(spotLight);
+		game.scene.add(spotLight);
 
-		var ground = new Physijs.PlaneMesh(new THREE.PlaneGeometry(1000, 1000, 100, 100), new THREE.MeshPhongMaterial({ color: 0x00FF00 }), 0);
-		ground.lookAt(new THREE.Vector3(0,1,0));
-		ground.receiveShadow = false;
-		ground.receiveShadow = true;
-		game.scene.add(ground);
+		
+		var terrainGeom = new THREE.PlaneGeometry(1024, 1024, 256, 256);
+		var seed = 0;
+		console.log('Generating terrain...');
+		for (var i = 0; i < terrainGeom.vertices.length; i++) {
+			var vertex = terrainGeom.vertices[i];
+			var x = vertex.x>>2, z = vertex.y>>2;
+			var fade = (Math.abs(x*x)+Math.abs(z*z))/16384.0;
+			fade = fade>1.0?0.0:1.0-fade;
+			vertex.z = ((GAME.utils.noise.perlin2D(seed, x+128, z+128)+1.0)/2.0) * fade * 64.0;
+		}
+		terrainGeom.computeFaceNormals();
+		terrainGeom.computeVertexNormals();
+		
+		var terrainMat = new THREE.ShaderMaterial(GAME.shaders.terrain);
+		terrainMat.fog = true;
+		terrainMat.lights = true;
+		terrain = new Physijs.HeightfieldMesh(terrainGeom, terrainMat, 0);
+		terrain.lookAt(new THREE.Vector3(0,1,0));
+		terrain.receiveShadow = true;
+		console.log('Done.');
+		game.scene.add(terrain);
+
 
 		var monolith = new Physijs.BoxMesh(new THREE.CubeGeometry(2, 10, 2), new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
-		monolith.position.y = 5;
+		monolith.position.y = 65;
 		monolith.castShadow = true;
 		monolith.receiveShadow = true;
 		var collisionCounter = 0;
@@ -92,14 +158,14 @@
 		};
 		game.scene.entityManager.tickQueue.add(monolith);
 		*/
-		light.target = monolith;
+		spotLight.target = monolith;
 		game.scene.add(monolith);
 
 		var loader = new THREE.JSONLoader();
 		loader.load('models/portalradio/portalradio.js', function (geometry, materials) {
 				var radioCollider = new Physijs.BoxMesh(new THREE.CubeGeometry(0.5, 0.5, 0.25), new THREE.MeshBasicMaterial({ color: 0x00EE00, wireframe: true, transparent: true }));
 				radioCollider.position.x = -10;
-				radioCollider.position.y = 2;
+				radioCollider.position.y = 62;
 				radioCollider.visible = false;
 				var radioMesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
 				radioMesh.scale.set(2,2,2);
@@ -129,23 +195,6 @@
 			}
 		);
 
-		game.player = new GAME.player.Player(game.scene);
-		game.player.position.y = 1;
-		game.player.position.z = 20;
-		sky.position = game.player.position;
-		game.player.controller = new GAME.player.PlayerController(game.scene, game.player);
-		game.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-		game.player.head.add(game.camera);
-		//game.player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
-		// TODO: Consider restructuring to make PlayerController superior.
-		game.player.tick = function (delta) {
-			this.controller.update(delta);
-			this.scene.entityManager.tickQueue.add(this);
-		};
-		game.scene.entityManager.tickQueue.add(game.player);
-
-		game.scene.add(game.player);
-
 		tickList.push(game.scene);
 	}
 
@@ -156,7 +205,7 @@
 		buildScene();
 		GAME.input.init(game.scene, game.player);
 
-		game.renderer = new THREE.WebGLRenderer();
+		game.renderer = new THREE.WebGLRenderer({ antialias: true });
 		game.renderer.setSize(window.innerWidth, window.innerHeight);
 		game.renderer.shadowMapEnabled = true;
 		game.renderer.shadowMapSoft = true;
@@ -174,7 +223,7 @@
 		tickList.push(GAME.audio);
 		GAME.audio.initMeSpeak();
 
-		GAME.net.connectToServer(game, 'http://4ytech.com:9980');
+		//GAME.net.connectToServer(game, 'http://4ytech.com:9980');
 	}
 
 	var clock = new THREE.Clock();

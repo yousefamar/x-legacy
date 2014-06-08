@@ -155,7 +155,7 @@ GAME.player.PlayerController = function (scene, player) {
 						break;
 					case 32: // space
 						// TODO: Make player height an attribute of Player.
-						if (distToGround() < 0.9001) velocity.y = 40;
+						if (distToGround() < 1.33) velocity.y = 100;
 						break;
 				}
 			}, false);
@@ -201,7 +201,7 @@ GAME.player.PlayerController = function (scene, player) {
 	this.update = function (delta) {
 		//netTimer += delta;
 		//if (netTimer >= 1) {
-			GAME.net.socket.emit('state', { pos: player.position, rot: player.rotation });
+			GAME.net.emit('state', { pos: player.position, rot: player.rotation });
 		//	netTimer = 0;
 		//}
 
