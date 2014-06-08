@@ -13,7 +13,7 @@ GAME.world.Scene.prototype.add = function(entity) {
 
 };
 
-GAME.world.Scene.prototype.tick = function() {
-	this.entityManager.tick();
+GAME.world.Scene.prototype.tick = function(delta) {
+	this.entityManager.tick(delta);
 	this.simulate();
 };

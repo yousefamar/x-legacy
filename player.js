@@ -1,8 +1,3 @@
-/**
- * @author mrdoob / http://mrdoob.com/
- * Modified by Paraknight 2013-03-26.
- */
-
 // TODO: Release to the general public.
 
 GAME.namespace('player').Player = function (scene) {
@@ -15,6 +10,41 @@ GAME.namespace('player').Player = function (scene) {
 
 GAME.player.Player.prototype = Object.create(THREE.Object3D.prototype);
 
+GAME.player.Player.prototype.addModel = function() {
+	var player = this;
+
+	var loader = new THREE.JSONLoader();
+	loader.load('models/player/head.js', function (geometry, materials) {
+			//var material = geometry.materials[0];
+			var skinnedMesh = new Physijs.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
+			//var materials = skinnedMesh.material.materials; 
+			//for (var i = 0, length = materials.length; i < length; i++)
+			//	materials[i].skinning = true;
+			
+			/*
+			THREE.AnimationHandler.add(skinnedMesh.geometry.animation);
+			var animation = new THREE.Animation(skinnedMesh, "walk", THREE.AnimationHandler.CATMULLROM);
+			animation.play();
+
+			skinnedMesh.tick = function (delta) {
+				animation.update(delta);
+				scene.entityManager.tickQueue.add(this);
+			};
+			scene.entityManager.tickQueue.add(skinnedMesh);
+			*/
+
+			player.head.add(skinnedMesh);
+		}
+	);
+
+	return this;
+};
+
+
+/**
+ * @author mrdoob / http://mrdoob.com/
+ * Modified by Paraknight 2013-03-26.
+ */
 
 // TODO: Restructure and use only Object3Ds.
 GAME.player.PlayerController = function (scene, player) {
@@ -43,9 +73,6 @@ GAME.player.PlayerController = function (scene, player) {
 	var moveBackward = false;
 	var moveLeft = false;
 	var moveRight = false;
-
-	var isOnObject = false;
-	var canJump = false;
 
 	var velocity = new THREE.Vector3();
 
@@ -83,8 +110,8 @@ GAME.player.PlayerController = function (scene, player) {
 						moveRight = true;
 						break;
 					case 32: // space
-						if (canJump) velocity.y = 10;
-						canJump = false;
+						// TODO: Make player height an attribute of Player.
+						if (distToGround() < 0.9001) velocity.y = 10;
 						break;
 				}
 			}, false);
@@ -113,21 +140,30 @@ GAME.player.PlayerController = function (scene, player) {
 
 	this.enabled = false;
 
-	this.update = function ( delta ) {
+	var rayCaster = new THREE.Raycaster();
+	rayCaster.ray.direction.set( 0, -1, 0 );
+
+	// TODO: Consider adding this function to the Player prototype.
+	function distToGround() {
+		rayCaster.ray.origin.copy(player.position);
+		//rayCaster.ray.origin.y -= 10;
+
+		var intersections = rayCaster.intersectObject(scene, true);
+		return intersections.length>0 ? intersections[0].distance : -1;
+	}
+
+	this.update = function (delta) {
 		// TODO: Make diagonal movement the same speed as vertical and horizontal by clamping small velocities to 0 and normalizing.
 
 		if (!scope.enabled) return;
 
-		delta *= 0.1;
+		delta *= 100;
 
-		if ( moveForward ) velocity.z = -delta;
-		if ( moveBackward ) velocity.z = delta;
+		if (moveForward) velocity.z = -delta;
+		if (moveBackward) velocity.z = delta;
 
-		if ( moveLeft ) velocity.x = -delta;
-		if ( moveRight ) velocity.x = delta;
-
-		// TODO: Ray trace downwards and check the distance to the nearest object to know if the player can jump.
-		canJump = player.position.y < 1;
+		if (moveLeft) velocity.x = -delta;
+		if (moveRight) velocity.x = delta;
 
 		//player.localToWorld(velocity).sub(player.position).length() < 0.01 ? velocity.set(0,0,0) : velocity.normalize().multiplyScalar(10);
 

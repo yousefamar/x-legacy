@@ -2,7 +2,6 @@
 	const TICK_INTERVAL_MS = 1000.0/60.0;
 
 	var player, camera, scene, renderer, statsTick, statsRender, monolithSound, monolith, collisionCounter=0;
-	var time = Date.now();
 
 	//TODO: Structure.
 	function buildScene() {
@@ -54,6 +53,10 @@
 		monolithSound.position.copy(monolith.position);
 		//monolithSound.play(true);
 
+		var otherPlayer = new GAME.player.Player(scene).addModel();
+		otherPlayer.position.x = -20;
+		scene.add(otherPlayer);
+
 		player = new GAME.player.Player(scene);
 		player.position.y = 1;
 		player.position.z = 20;
@@ -62,16 +65,13 @@
 		player.head.add(camera);
 		//player.add(new THREE.PointLight(0xFFFF00, 0.15, 20));
 		// TODO: Consider restructuring to make PlayerController superior.
-		player.tick = function () {
+		player.tick = function (delta) {
 			//player.controller.isOnObject(player.position.y<=10);
-			player.controller.update(Date.now() - time);
-			time = Date.now();
+			player.controller.update(delta);
 			scene.entityManager.tickQueue.add(this);
 		};
 		scene.entityManager.tickQueue.add(player);
 
-		// TODO: Do something about this.
-		//player.position.z = 200;
 		scene.add(player);
 	}
 
@@ -116,12 +116,14 @@
 	function tick() {
 		setTimeout(tick, TICK_INTERVAL_MS);
 
+		var delta = clock.getDelta();
+
 		var scaleFactor = Math.max(1, 1+(0.02*Math.sin(wave)));
 		monolith.scale.set(scaleFactor, scaleFactor, scaleFactor);
-		wave += clock.getDelta()*11;
+		wave += delta*11;
 
 		statsTick.begin();
-		scene.tick();
+		scene.tick(delta);
 		statsTick.end();
 
 		monolithSound.update(player.position);

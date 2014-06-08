@@ -5,7 +5,7 @@ GAME.namespace('entities').EntityManager = function (scene) {
 
 };
 
-GAME.entities.EntityManager.prototype.tick = function() {
-	for (var size = this.tickQueue.size, i = 0; i < size; i++)
-		this.tickQueue.poll().tick();
+GAME.entities.EntityManager.prototype.tick = function(delta) {
+	for (var i = 0, size = this.tickQueue.size; i < size; i++)
+		this.tickQueue.poll().tick(delta);
 };
